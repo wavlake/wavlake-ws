@@ -1,0 +1,6 @@
+{
+    "clients": {
+        "wavlake" : { "pubkey": "abcdefge97b61279352379aeae988a88cde3fe2fbe7d08b4771dcb2e668cbc6278", "secret": "moneyprintergobrrr" },
+        "example" : { "pubkey": "12345678e97b61279352379aeae988a88cde3fe2fbe7d08b4771dcb2e668cbc627", "secret": "numbergoup" }
+    }
+}
