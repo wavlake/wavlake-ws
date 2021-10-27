@@ -1,7 +1,8 @@
-const axios = require('axios');
+const log = require('loglevel')
 const apiKeys = require('../.keys/api_keys.json')
 const trackManager = require('../library/trackManager')
 const invoiceManager = require('../library/invoiceManager')
+const storage = require('../library/storage')
 
 const config = {
   pinataKey: process.env.PINATA_KEY,
@@ -20,28 +21,22 @@ const handleErrorAsync = (fn) => async (req, res, next) => {
 
 
 // GET
-exports.testAuth = handleErrorAsync(async (req, res, next) => {
-  const url = `https://api.pinata.cloud/data/testAuthentication`;
-  return axios
-      .get(url, {
-          headers: {
-              pinata_api_key: config.pinataKey,
-              pinata_secret_api_key: config.pinataSecret
-          }
-      })
-      .then(response => res.json(response.data))
-      .catch(error => console.log(error));
-});
-
 
 exports.check = handleErrorAsync(async (req, res, next) => {
 
+  const client = apiKeys['clients']
+                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
+                               .toString()
+                               .split(':')[0]]
+                        ['pubkey']
+  console.log(client)
+
   const request = { 
-    client: apiKeys['clients'][req.query.client]['pubkey'],
+    // client: apiKeys['clients'][req.query.client]['pubkey'],
     trackId: req.query.trackId,
   };
 
-  const check = await trackManager.checkPlays(request.client, request.trackId)
+  const check = await trackManager.checkPlays(client, request.trackId)
 
   if (check) {
     res.status(200).json( { 
@@ -61,27 +56,70 @@ exports.check = handleErrorAsync(async (req, res, next) => {
 // POST
 
 
-exports.create = async (req, res, err) => {
+exports.create = handleErrorAsync(async (req, res, next) => {
 
-  res.json('create')
-};
+  const client = apiKeys['clients']
+                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
+                              .toString()
+                              .split(':')[0]]
+                        ['pubkey']
+
+  const request = {
+    trackId: req.body.trackId, 
+    initPlaysRemaining: req.body.initPlaysRemaining, 
+    msatsPerPlay: req.body.msatsPerPlay
+  }
+
+  log.debug(`Creating track ${client}:${request.trackId} in tracks table`);
+
+  const create = await trackManager.createTrack( client,
+                                                 request.trackId,
+                                                 request.initPlaysRemaining,
+                                                 request.msatsPerPlay )
+
+  if (create) {
+    const check = await trackManager.checkPlays(client, request.trackId)
+
+    if (check) {
+      res.status(200).json( { 
+                              client: client,
+                              cid: check.cid,
+                              play_count: check.play_count,
+                              plays_remaining: check.plays_remaining,
+                              msats_per_play: check.msats_per_play,
+                              } )
+      }
+      else if (!check) {
+        res.status(500).json( { error: 'Database error creating track' } )
+      }
+  else {
+    res.status(500).json( { error: 'Database error creating track' } )
+  }
+}
+});
 
 exports.mark = handleErrorAsync(async (req, res, next) => {
 
+  const client = apiKeys['clients']
+                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
+                              .toString()
+                              .split(':')[0]]
+                        ['pubkey']
+
   const request = { 
-    client: apiKeys["clients"][req.body.client]['pubkey'],
+    // client: apiKeys["clients"][req.body.client]['pubkey'],
     trackId: req.body.trackId,
     count: req.body.count
   };
 
-  const check = await trackManager.checkPlays(request.client, request.trackId)
+  const check = await trackManager.checkPlays(client, request.trackId)
 
   if (request.count <= check.plays_remaining) {
-    const add = await trackManager.markPlay(request.client, request.trackId, request.count)
+    const add = await trackManager.markPlay(client, request.trackId, request.count)
 
     if (add === 1) {
       // res.status(200).json( `Updated play count and plays remaining by ${request.count} for ${request.trackId}` )
-      const check = await trackManager.checkPlays(request.client, request.trackId)
+      const check = await trackManager.checkPlays(client, request.trackId)
 
       if (check) {
         res.status(200).json( { 
@@ -108,8 +146,14 @@ exports.mark = handleErrorAsync(async (req, res, next) => {
 
 exports.recharge = handleErrorAsync(async (req, res, next) => {
 
+  const client = apiKeys['clients']
+                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
+                              .toString()
+                              .split(':')[0]]
+                        ['pubkey']
+
   const request = { 
-    client: apiKeys["clients"][req.body.client]['pubkey'],
+    // client: apiKeys["clients"][req.body.client]['pubkey'],
     r_hash_str: req.body.r_hash_str
   };
 
@@ -128,7 +172,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
   }
 
   // Set play increment according to payment amount and track's sats_per_play value
-  const cost = await trackManager.checkPrice(request.client, status.memo)
+  const cost = await trackManager.checkPrice(client, status.memo)
   const increment = (Number(status.value_msat) / cost['msats_per_play'])
   // console.log(increment)
 
@@ -139,7 +183,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
                                                 status.settled,
                                                 status.memo)
                                     .then(() => {
-                                      trackManager.rechargePlays(request.client, status.memo, increment)
+                                      trackManager.rechargePlays(client, status.memo, increment)
                                     })
                                     .then(() => {
                                       return invoiceManager.markRecharged(request.r_hash_str)
@@ -147,7 +191,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
   
     if (add) {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
-      const check = await trackManager.checkPlays(request.client, status.memo)
+      const check = await trackManager.checkPlays(client, status.memo)
 
       if (check) {
         res.status(200).json( { 
@@ -169,14 +213,14 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
 
   // Only recharge track if r_hash_str value already exists in db but recharged is false
   else if (status.settled && !record[0].recharged) {
-    const add = await trackManager.rechargePlays(request.client, status.memo, increment)
+    const add = await trackManager.rechargePlays(client, status.memo, increment)
                                   .then(() => {
                                     return invoiceManager.markRecharged(request.r_hash_str)
                                   })
 
     if (add) {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
-      const check = await trackManager.checkPlays(request.client, rstatus.memo)
+      const check = await trackManager.checkPlays(client, rstatus.memo)
 
       if (check) {
         res.status(200).json( { 
@@ -196,5 +240,32 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
     }
   }
   
+});
+
+exports.upload = handleErrorAsync(async (req, res, next) => {
+
+  const client = apiKeys['clients']
+                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
+                              .toString()
+                              .split(':')[0]]
+                        ['pubkey']
+
+  console.log(req.files.filename)
+  // log.debug(`Locating files: ${JSON.stringify(req.files)}`);
+
+  const fileObj = req.files.filename;
+
+  const request = {
+    title: req.body.title, 
+  }
+
+  log.debug(`Uploading track ${client}:${request.title} to IPFS`);
+
+  const upload = await storage.pinFileToIPFS(Buffer.from(fileObj.data, 'base64'), request.title)
+
+  if (upload) {
+    res.status(200).json(upload)
+  }
+
 });
 

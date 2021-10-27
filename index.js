@@ -7,6 +7,7 @@ const cors = require('cors')
 const helmet = require('helmet')
 const bodyParser = require('body-parser')
 const basicAuth = require('express-basic-auth')
+const fileUpload = require('express-fileupload');
 const { apiAuth } = require('./library/auth')
 const log = require('loglevel')
 log.setLevel(process.env.LOGLEVEL)
@@ -30,6 +31,7 @@ app.use(compression())
 app.use(express.urlencoded({ extended: true }))
 app.use(bodyParser.json());
 app.use(express.json())
+app.use(fileUpload())
 
 // ROUTES
 app.use('/auth', authRouter)

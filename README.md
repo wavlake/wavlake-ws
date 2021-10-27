@@ -1,6 +1,6 @@
 # wavlake-ws (alpha)
 
-wavlake-ws (web service) is a fully open-source tool designed to be run by individuals who want to sell media for bitcoin payments over the Lightning Network. The service's endpoints are designed to power any front-end application, either as a single backend service or as part of a collection. [wavlake.com](wavlake.com), for example, runs on wavlake-ws as its backend.
+wavlake-ws (web service) is a fully open-source tool designed to be run by individuals who want to sell media for bitcoin payments over the Lightning Network. The service's endpoints are designed to power any front-end application, either as a single backend service or as part of a collection. [wavlake.com](https://wavlake.com), for example, runs on wavlake-ws as its backend.
 
 Currently, wavlake-ws requires `lnd` as a Lightning service implementation. We hope to support other implementations in the future.
 

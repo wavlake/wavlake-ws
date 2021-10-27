@@ -37,17 +37,22 @@ async function checkPrice(client, trackId) {
     })
 }
 
-// Recharge play meter
-async function createTrack(client, msatsPerPlay, audioFile) {
+// Create new track
+async function createTrack(client, trackId, initPlaysRemaining, msatsPerPlay) {
     return new Promise((resolve, reject) => {
-        log.debug(`Recharging plays remaining for track ${client}:${trackId}`);
+        log.debug(`Creating new track ${client}:${trackId}`);
         return db.knex('tracks')
-                .where({ client: client, cid: trackId })
-                .increment({plays_remaining: increment})
+                .insert({ client: client, 
+                          cid: trackId,
+                          play_count: 0,
+                          plays_remaining: parseInt(initPlaysRemaining),
+                          msats_per_play: parseInt(msatsPerPlay) })
                 .then(data => {
+                    log.debug(`Created new track ${client}:${trackId}, ${data}`);
                     resolve(data)
                     })
                 .catch(err => {
+                    log.debug(`Error creating new track: ${err}`);
                     reject(err)
                 })
         })

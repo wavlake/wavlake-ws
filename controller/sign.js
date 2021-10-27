@@ -42,7 +42,7 @@ exports.signMessage = handleErrorAsync(async (req, res, next) => {
 
     // Hash the user name before converting to byte buffer/integer for key_index
     const hash = createHash('sha256');
-    const userHash = hash.update(req.query['user']).digest('hex')
+    const userHash = hash.update(req.query['client']).digest('hex')
 
     const request = { 
         msg: Buffer.from(req.query["message"]),

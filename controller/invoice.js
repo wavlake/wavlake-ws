@@ -5,7 +5,7 @@ const log = require('loglevel')
 exports.addInvoice = async (req, res, err) => {
     const request = { 
         value: req.body['value'],
-        memo: req.body['memo'] // MUST BE CID OF TRACK
+        memo: req.body['trackId'] // MUST BE CID OF TRACK
       };
     
     console.log(request)

@@ -8,12 +8,12 @@ const router = express.Router()
 
 // Routes
 
-router.get('/test-auth', trackRoute.testAuth)
 router.get('/check', trackRoute.check)
 
-router.post('/recharge', trackRoute.recharge)
-router.post('/mark', trackRoute.mark)
 router.post('/create', trackRoute.create)
+router.post('/mark', trackRoute.mark)
+router.post('/recharge', trackRoute.recharge)
+router.post('/upload', trackRoute.upload)
 
 // Export router
 module.exports = router
