@@ -11,8 +11,8 @@ const sign = require('../controller/sign.js')
 
 // Routes
 // PUBLIC
-router.get('/sign', sign.signMessage)
-// router.get('/pubkey', sign.getPublicKey)
+// router.get('/sign', sign.signMessage)
+router.get('/pubkey', sign.getPublicKey)
 // router.get('/verify', sign.verifyMessage)
 
 router.post('/', basicAuth( { authorizer: apiAuth, authorizeAsync: true } ), async (req, res, err) => {
