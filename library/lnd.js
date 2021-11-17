@@ -1,4 +1,5 @@
-const grpc = require('@grpc/grpc-js');
+// const grpc = require('@grpc/grpc-js');
+const grpc = require('grpc')
 const protoLoader = require('@grpc/proto-loader');
 const fs = require("fs");
 const path = require('path');
@@ -10,14 +11,13 @@ const config = {
   lnd_port: process.env.LND_PORT
 }
 
-// const { Buffer } = 'buffer';
-
 //// gRPC INITIALIZATION
 
 // Due to updated ECDSA generated tls.cert we need to let gprc know that
 // we need to use that cipher suite otherwise there will be a handhsake
 // error when we communicate with the lnd rpc server.
-process.env.GRPC_SSL_CIPHER_SUITES = 'HIGH+ECDSA'
+// process.env.GRPC_SSL_CIPHER_SUITES = 'HIGH+ECDSA'
+process.env.GRPC_SSL_CIPHER_SUITES = 'HIGH+ECDSA:ECDHE-RSA-AES128-GCM-SHA256'
 
 // We need to give the proto loader some extra options, otherwise the code won't
 // fully work with lnd.
@@ -35,10 +35,11 @@ const packageDefinition = protoLoader.loadSync([ path.join(__dirname, 'lightning
                                                 ], 
                                                 loaderOptions);
 
+let macaroon = config.macaroon
+
 // Load lnd macaroon
 // let m = fs.readFileSync(config.macaroon);
 // let macaroon = m.toString('hex');
-let macaroon = config.macaroon
 
 // Build meta data credentials
 let metadata = new grpc.Metadata()
@@ -46,6 +47,7 @@ metadata.add('macaroon', macaroon)
 let macaroonCreds = grpc.credentials.createFromMetadataGenerator((_args, callback) => {
   callback(null, metadata);
 });
+
 // Combine credentials
 let lndCert = fs.readFileSync(config.tls);
 let sslCreds = grpc.credentials.createSsl(lndCert);

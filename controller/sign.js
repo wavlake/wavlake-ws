@@ -1,5 +1,4 @@
 const lnd = require('../library/lnd')
-const encryption = require('../library/encryption')
 
 const key_family = 139
 
@@ -72,13 +71,16 @@ exports.verifyMessage = handleErrorAsync(async (req, res, next) => {
     signature: Buffer.from(req.query["signature"], 'hex'),
     pubkey: Buffer.from(req.query["pubkey"], 'hex')
   };
-
-  lnd.signer.verifyMessage(request, function(err, response) {
-      if (err) {
-        res.json(err)
-      }
-      else {
-        res.json({verified: response})
-      }
+  // console.log(request)
+  return new Promise((resolve, reject) => {
+    lnd.signer.verifyMessage(request, function(err, response) {
+        if (err) {
+          // console.log(response)
+          reject(res.json(err))
+        }
+        else {
+          resolve(res.json({verified: response}))
+        }
+    })
   })
 })

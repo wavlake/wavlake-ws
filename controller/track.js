@@ -250,7 +250,7 @@ exports.upload = handleErrorAsync(async (req, res, next) => {
                               .split(':')[0]]
                         ['pubkey']
 
-  console.log(req.files.filename)
+  // console.log(req.body)
   // log.debug(`Locating files: ${JSON.stringify(req.files)}`);
 
   const fileObj = req.files.filename;

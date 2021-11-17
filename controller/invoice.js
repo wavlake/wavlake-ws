@@ -1,8 +1,19 @@
 const lnd = require('../library/lnd')
 const log = require('loglevel')
 
+// Error handling
+// Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
+const handleErrorAsync = (fn) => async (req, res, next) => {
+  try {
+      await fn(req, res, next);
+  } catch (error) {
+      next(error);
+  }
+};
+
+
 // METHODS
-exports.addInvoice = async (req, res, err) => {
+exports.addInvoice = handleErrorAsync(async (req, res, next) => {
     const request = { 
         value: req.body['value'],
         memo: req.body['trackId'] // MUST BE CID OF TRACK
@@ -20,9 +31,9 @@ exports.addInvoice = async (req, res, err) => {
         }
         
     })
-}
+})
 
-exports.lookupInvoice = async (req, res, err) => {
+exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
     const request = { 
         r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
       };
@@ -36,9 +47,9 @@ exports.lookupInvoice = async (req, res, err) => {
         }
         
     })
-}
+})
 
-exports.monitorInvoice = async (req, res, err) => {
+exports.monitorInvoice = handleErrorAsync(async (req, res, next) => {
     const request = { 
         r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
       };
@@ -61,4 +72,4 @@ exports.monitorInvoice = async (req, res, err) => {
         // The server has closed the stream.
         console.log('connection closed')
     });
-}
+})

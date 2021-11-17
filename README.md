@@ -6,6 +6,17 @@ Currently, wavlake-ws requires `lnd` as a Lightning service implementation. We h
 
 NOTE: wavlake-ws is currently in alpha release mode. We appreciate your patience and support. Please add any findings of bugs or issues to the [issues](https://github.com/wavlake/wavlake-ws/issues) page.
 
+## Overview
+
+Runtime: Node
+Framework: Express
+Lightning: lnd
+Storage: IPFS (via Piñata)
+
+## Install
+
+TODO
+
 
 ## Development
 
@@ -56,25 +67,23 @@ More details on authentication in the API Credentials section.
 
 ### Docker
 
-TODO
-
 Build container:
 
-`docker build -t wavlake-api .`
+`docker build -t wavlake-ws .`
 
 Run Express server:
 
 ```
 docker run -it -p 3001:3001 \
--v ~/Repos/wavlake-api/.keys:/usr/src/app/.keys \
--v ~/Repos/wavlake-api/data:/usr/src/app/data \
--v ~/Repos/wavlake-api/.env:/usr/src/app/.env \
-wavlake-api
+-v /path/to/wavlake-ws/.keys:/usr/src/app/.keys:ro \
+-v /path/to/wavlake-ws/data:/usr/src/app/data \
+-v /path/to/wavlake-ws/.env:/usr/src/app/.env \
+wavlake-ws
 ```
 
 In the above `run` command, we mount a couple volumes to the container from the host machine, namely `.keys` and `data`. This enables us to access these files directly from the host machine without copying them to the container. Also, in the case of the `data` dir, we can persist database updates to the sqlite3 file residing on the host machine so we don't lose any updates when the container is destroyed.
 
-TODO: Issue connecting running Docker instance with `lnd` nodes running in Polar.
+TODO: Issue connecting running Docker instance with `lnd` nodes running in local Polar envionment.
 
 
 ## API Credentials (alpha)
