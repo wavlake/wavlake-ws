@@ -26,7 +26,7 @@ async function apiAuth(username, password, cb) {
     };
   
     const request_two = { 
-      msg: Buffer.from(`${username}${clientSecret}${times[0].toString()}`),
+      msg: Buffer.from(`${username}${clientSecret}${times[1].toString()}`),
       signature: signature,
       pubkey: pubkey
     };
@@ -65,28 +65,6 @@ function timer() {
   log.debug(`Current API timer window: ${ceil}`);
   return [ ceil, floor ]
 }
-
-// function apiAuth(username, password, cb) {
-
-//     const authorized = encryption.encryptString(username)
-//                          .then(enc_username => {
-//                             console.log(enc_username);
-//                             if (!apiKeys["users"][enc_username]) {
-//                               return cb(null, false)
-//                             }
-//                             else {
-//                                 encryption.encryptString(password)
-//                                 .then(enc_password => {
-//                                   console.log(enc_password);
-//                                   return cb(null, basicAuth.safeCompare(enc_password, apiKeys["users"][enc_username]))
-//                                 })
-//                             }
-//                          })
-//     // const userMatches = basicAuth.safeCompare(username, encryption.encryptString(username))
-//     // const passwordMatches = basicAuth.safeCompare(password, apiKeys["users"][username])
-
-//     return authorized
-// }
 
 module.exports = {
     apiAuth

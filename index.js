@@ -11,6 +11,7 @@ const fileUpload = require('express-fileupload');
 const { apiAuth } = require('./library/auth')
 const log = require('loglevel')
 log.setLevel(process.env.LOGLEVEL)
+const corsHost = process.env.CORS_HOST
 
 // Import routes
 const authRouter = require('./routes/auth-route')
@@ -23,9 +24,14 @@ const PORT = process.env.EXPRESS_PORT || 3001
 // Create express app
 const app = express()
 
+var corsOptions = {
+  origin: `${corsHost}`,
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+}
+
 // Apply middleware
 // Note: Keep this at the top, above routes
-app.use(cors())
+app.use(cors(corsOptions))
 app.use(helmet())
 app.use(compression())
 app.use(express.urlencoded({ extended: true }))

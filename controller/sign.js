@@ -13,7 +13,7 @@ const handleErrorAsync = (fn) => async (req, res, next) => {
   };
 
 // METHODS
-exports.getPublicKey = async (req, res, err) => {
+exports.getPublicKey = handleErrorAsync(async (req, res, next) => {
 
   const {
     createHash
@@ -31,7 +31,7 @@ exports.getPublicKey = async (req, res, err) => {
     res.json({publickey: Buffer.from(response['raw_key_bytes']).toString('hex')});
   });
 
-}
+})
 
 exports.signMessage = handleErrorAsync(async (req, res, next) => {
 
