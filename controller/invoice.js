@@ -16,7 +16,8 @@ const handleErrorAsync = (fn) => async (req, res, next) => {
 exports.addInvoice = handleErrorAsync(async (req, res, next) => {
     const request = { 
         value: req.body['value'],
-        memo: req.body['trackId'] // MUST BE CID OF TRACK
+        memo: req.body['trackId'], // MUST BE CID OF TRACK
+        expiry: 180
       };
     
     console.log(request)
