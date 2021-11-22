@@ -11,6 +11,7 @@ const router = express.Router()
 router.get('/check', trackRoute.check)
 
 router.post('/create', trackRoute.create)
+router.post('/delete', trackRoute.delete)
 router.post('/mark', trackRoute.mark)
 router.post('/recharge', trackRoute.recharge)
 router.post('/upload', trackRoute.upload)

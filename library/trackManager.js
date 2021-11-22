@@ -58,6 +58,24 @@ async function createTrack(client, trackId, initPlaysRemaining, msatsPerPlay) {
         })
 }
 
+// Delete track
+async function deleteTrack(client, trackId) {
+    return new Promise((resolve, reject) => {
+        log.debug(`Deleting track ${client}:${trackId}`);
+        return db.knex('tracks')
+                .where({ client: client, cid: trackId })
+                .del()
+                .then(data => {
+                    log.debug(`Deleted track ${client}:${trackId}, ${data}`);
+                    resolve(data)
+                    })
+                .catch(err => {
+                    log.debug(`Error deleting track: ${err}`);
+                    reject(err)
+                })
+        })
+}
+
 // TODO: Raise error so plays remaining cannot go below 0
 // Add to play count and subtract from plays remaining
 async function markPlay(client, trackId, count) {
@@ -110,6 +128,7 @@ module.exports = {
     checkPlays,
     checkPrice,
     createTrack,
+    deleteTrack,
     markPlay,
     rechargePlays,
 }

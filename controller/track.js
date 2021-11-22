@@ -3,11 +3,9 @@ const apiKeys = require('../.keys/api_keys.json')
 const trackManager = require('../library/trackManager')
 const invoiceManager = require('../library/invoiceManager')
 const storage = require('../library/storage')
+const pinataSDK = require('@pinata/sdk');
 
-const config = {
-  pinataKey: process.env.PINATA_KEY,
-  pinataSecret: process.env.PINATA_SECRET,
-}
+const pinata = pinataSDK(process.env.PINATA_KEY, process.env.PINATA_SECRET);
 
 // Error handling
 // Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
@@ -96,6 +94,29 @@ exports.create = handleErrorAsync(async (req, res, next) => {
     res.status(500).json( { error: 'Database error creating track' } )
   }
 }
+});
+
+exports.delete = handleErrorAsync(async (req, res, next) => {
+
+  const client = apiKeys['clients']
+                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
+                              .toString()
+                              .split(':')[0]]
+                        ['pubkey']
+
+  const request = {
+    trackId: req.body.trackId
+  }
+
+  log.debug(`Deleting track ${client}:${request.trackId} in tracks table`);
+
+  // Delete media from IPFS
+  const unpin = await pinata.unpin(request.trackId)
+                        // Delete track record from db
+                        .then(() => trackManager.deleteTrack(client, request.trackId))
+                        .then((result) => res.status(200).json(result))
+                        .catch((err) => log.error(err))
+
 });
 
 exports.mark = handleErrorAsync(async (req, res, next) => {
@@ -188,6 +209,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
                                     .then(() => {
                                       return invoiceManager.markRecharged(request.r_hash_str)
                                     })
+                                    .catch((err) => log.error(err))
   
     if (add) {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
