@@ -1,6 +1,6 @@
 {
   "name": "wavlake-api",
-  "version": "0.0.1",
+  "version": "0.1.0-alpha",
   "description": "API for wavlake.com",
   "main": "index.js",
   "engines": {

@@ -15,7 +15,7 @@ Storage: IPFS (via Piñata)
 
 ## Install
 
-TODO
+`npm install`
 
 
 ## Development
@@ -36,10 +36,6 @@ uri:/signrpc.Signer/VerifyMessage \
 uri:/walletrpc.WalletKit/DeriveKey \
 uri:/invoicesrpc.Invoices/SubscribeSingleInvoice
 ```
-
-### Express
-
-Run `npm install` from the project root.
 
 ### Database (sqlite3)
 
