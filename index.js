@@ -6,9 +6,7 @@ const compression = require('compression')
 const cors = require('cors')
 const helmet = require('helmet')
 const bodyParser = require('body-parser')
-const basicAuth = require('express-basic-auth')
 const fileUpload = require('express-fileupload');
-const { apiAuth } = require('./library/auth')
 const log = require('loglevel')
 log.setLevel(process.env.LOGLEVEL)
 const corsHost = process.env.CORS_HOST
@@ -41,8 +39,8 @@ app.use(fileUpload())
 
 // ROUTES
 app.use('/auth', authRouter)
-app.use('/invoice', basicAuth( { authorizer: apiAuth, authorizeAsync: true } ), invoiceRouter)
-app.use('/track', basicAuth( { authorizer: apiAuth, authorizeAsync: true } ), trackRouter)
+app.use('/invoice', invoiceRouter)
+app.use('/track', trackRouter)
 
 // Implement 500 error route
 app.use(function (err, req, res, next) {
