@@ -3,8 +3,6 @@ const trackManager = require('../library/trackManager')
 const invoiceManager = require('../library/invoiceManager')
 const storage = require('../library/storage')
 
-const client = "placeholder"
-
 // Error handling
 // Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
 const handleErrorAsync = (fn) => async (req, res, next) => {
@@ -153,11 +151,11 @@ exports.mark = handleErrorAsync(async (req, res, next) => {
 
 exports.recharge = handleErrorAsync(async (req, res, next) => {
 
-
-
   const request = { 
     r_hash_str: req.body.r_hash_str
   };
+
+  const cid = await invoiceManager.getCidFromInvoice(request.r_hash_str);
 
   // Check if invoice hash already exists in db, return if previously used
   const record = await invoiceManager.checkHash(request.r_hash_str)
@@ -172,21 +170,18 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
   if (!status.settled) {
     return res.status(500).json( 'Invoice not settled' )
   }
+  else if (status.settled) {
+    await invoiceManager.updateInvoiceSettled(request.r_hash_str);
+  }
 
   // Set play increment according to payment amount and track's sats_per_play value
-  const cost = await trackManager.checkPrice(status.memo)
+  const cost = await trackManager.checkPrice(cid)
   const increment = (Number(status.value_msat) / cost['msats_per_play'])
   // console.log(increment)
 
   // Write new invoice r_hash_str value to db if it has been settled
   if (status.settled && record.length === 0) {
-    const add = await invoiceManager.addHash(request.r_hash_str,
-                                                status.value_msat,
-                                                status.settled,
-                                                status.memo)
-                                    .then(() => {
-                                      trackManager.rechargePlays(status.memo, increment)
-                                    })
+    const add = await trackManager.rechargePlays(cid, increment)
                                     .then(() => {
                                       return invoiceManager.markRecharged(request.r_hash_str)
                                     })
@@ -194,7 +189,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
   
     if (add) {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
-      const check = await trackManager.checkPlays(status.memo)
+      const check = await trackManager.checkPlays(cid)
 
       if (check) {
         res.status(200).json( { 
@@ -215,14 +210,14 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
 
   // Only recharge track if r_hash_str value already exists in db but recharged is false
   else if (status.settled && !record[0].recharged) {
-    const add = await trackManager.rechargePlays(status.memo, increment)
+    const add = await trackManager.rechargePlays(cid, increment)
                                   .then(() => {
                                     return invoiceManager.markRecharged(request.r_hash_str)
                                   })
 
     if (add) {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
-      const check = await trackManager.checkPlays(status.memo)
+      const check = await trackManager.checkPlays(cid)
 
       if (check) {
         res.status(200).json( { 

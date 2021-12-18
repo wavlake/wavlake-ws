@@ -1,5 +1,6 @@
 const lnd = require('../library/lnd')
 const log = require('loglevel')
+const invoiceManager = require('../library/invoiceManager')
 
 // Error handling
 // Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
@@ -14,24 +15,40 @@ const handleErrorAsync = (fn) => async (req, res, next) => {
 
 // METHODS
 exports.addInvoice = handleErrorAsync(async (req, res, next) => {
-    const request = { 
-        value: req.body['value'],
-        memo: req.body['trackId'], // MUST BE CID OF TRACK
-        expiry: 180
-      };
-    
-    console.log(request)
 
-    lnd.client.addInvoice(request, function(err, response) {
-        if (err) {
-          res.json(err)
-        }
-        else {
-          log.debug(`Generated invoice, r_hash: ${Buffer.from(response.r_hash).toString('hex')}`);
-          res.json(response);
-        }
-        
-    })
+    const title = req.body['title']
+    const artist = req.body['artist']
+    const cid = req.body['cid']
+    const value = req.body['value']
+
+    // Create invoice record excluding r_hash, get record ID
+    invoiceManager.addNewInvoice(value, cid)
+      .then((data) => {
+        const invoiceId = data;
+        const request = { 
+          value: value,
+          memo: `Wavlake: ${title} by ${artist} (id:${res})`,
+          expiry: 180
+        };
+            // Generate invoice
+        lnd.client.addInvoice(request, function(err, response) {
+          if (err) {
+            res.json(err)
+          }
+          else {
+            // Update invoice with r_hash
+            const lndResponse = response;
+            const r_hash_str = Buffer.from(response.r_hash).toString('hex')
+            log.debug(`Generated invoice, r_hash: ${r_hash_str}`);
+            invoiceManager.updateInvoiceHash(invoiceId, r_hash_str)
+              .then(() => res.status(200).json(lndResponse))
+            // res.json(response);
+          }
+          
+      })
+      })
+
+
 })
 
 exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {

@@ -26,15 +26,16 @@ async function checkPrice(cid) {
     return new Promise((resolve, reject) => {
         log.debug(`Checking price for ${cid} in tracks table`);
         return db.knex('tracks')
-                .where({ cid: cid })
-                .first('msats_per_play')
-                .then(data => {
-                    resolve(data)
-                    })
-                .catch(err => {
-                    reject(err)
-            })
+            .where({ cid: cid })
+            .first('msats_per_play')
+            .then(res => {
+                resolve(res)
+                })
+            .catch(err => {
+                reject(err)
+        })
     })
+
 }
 
 // Create new track
