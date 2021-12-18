@@ -1,84 +1,54 @@
 const log = require('loglevel')
-const FormData = require('form-data');
-const pinataSDK = require('@pinata/sdk');
-const { Readable } = require('stream');
+const stream = require('stream');
+const {Storage} = require('@google-cloud/storage');
+const{ randomUUID } = require('crypto')
 
-const pinata = pinataSDK(process.env.PINATA_KEY, process.env.PINATA_SECRET);
-
-const config = {
-  lnd_host: process.env.LND_HOST,
-  lnd_port: process.env.LND_PORT,
-  file_size_limit: process.env.FILE_SIZE_LIMIT
-}
-
-// const testAuth = async (req, res, err) => {
-//     const url = `https://api.pinata.cloud/data/testAuthentication`;
-//     return axios
-//         .get(url, {
-//             headers: {
-//                 pinata_api_key: config.pinataKey,
-//                 pinata_secret_api_key: config.pinataSecret
-//             }
-//         })
-//         .then(response => res.json(response.data))
-//         .catch(error => console.log(error));
-//   };
+const storage = new Storage({ projectId: process.env.FIREBASE_PROJECT_ID,
+    credentials: { client_email: process.env.FIREBASE_CLIENT_EMAIL,
+                    private_key: process.env.FIREBASE_PRIVATE_KEY_ALT
+                  } 
+  })
 
 
-
-async function pinFileToIPFS(fileObj, title) {
-    log.debug(`Pinning file to IPFS`);
-    const url = `https://api.pinata.cloud/pinning/pinFileToIPFS`;
-
-    //we gather a local file for this example, but any valid readStream source will work here.
-    // let data = new FormData();
-    // data.append('file', Readable.from(fileObj, {objectMode: true}));
-    const readableStreamForFile = Readable.from(fileObj)
-    readableStreamForFile.path = 'example.mp3'
-
-    const options = {
-        pinataMetadata: {
-            name: title,
-            // keyvalues: {
-            //     customKey: 'customValue',
-            //     customKey2: 'customValue2'
-            // }
-        },
-        pinataOptions: {
-            cidVersion: 0
-        }
-    };
+async function deleteFromStorage(bucketName, owner, cid) {
+    log.debug(`Deleting ${cid} from storage`);
+    // const bucket = storage.bucket(bucketName)
+    const filePath = `content/${owner}/tracks/${cid}`
 
     return new Promise((resolve, reject) => {
-        pinata.pinFileToIPFS(readableStreamForFile, options).then((result) => {
-            //handle results here
-            console.log(result);
-            resolve(result);
-        }).catch((err) => {
-            //handle error here
-            console.log(err);
-            reject(err);
+        storage.bucket(bucketName).file(filePath).delete()
+            .then(() => { console.log(`${owner}:${cid} deleted from bucket: ${bucketName}`); resolve({cid: cid}) } )
+            .catch((err) => reject(err))
+    })
+};
+
+async function uploadToStorage(filePath, bucketName, owner) {
+    log.debug(`Uploading to storage`);
+    const destFileName = `${randomUUID()}.mp3`;
+    const bucket = storage.bucket(bucketName)
+    const file = bucket.file(`content/${owner}/tracks/${destFileName}`)
+
+     // Create a pass through stream from a string
+    const passthroughStream = new stream.PassThrough();
+    passthroughStream.write(filePath);
+    passthroughStream.end();
+
+    async function streamFileUpload() {
+        passthroughStream.pipe(file.createWriteStream()).on('finish', () => {
+          // The file upload is complete
         });
-        // axios
-        //     .post(url, data, {
-        //         maxBodyLength: parseInt(config.file_size_limit),
-        //         headers: {
-        //             'Content-Type': `multipart/form-data; boundary=${data._boundary}`,
-        //             pinata_api_key: config.pinataKey,
-        //             pinata_secret_api_key: config.pinataSecret
-        //         }
-        //     })
-        //     .then(function (response) {
-        //         log.debug(`IPFS response: ${response}`);
-        //         resolve(response);
-        //     })
-        //     .catch(function (error) {
-        //         log.error(`IPFS error: ${error}`);
-        //         reject(error);
-        //     });
+    
+        // console.log(`${destFileName} uploaded to ${bucketName}`);
+      }
+
+    return new Promise((resolve, reject) => {
+        streamFileUpload()
+            .then(() => { console.log(`${destFileName} uploaded to ${bucketName}`); resolve({trackId: destFileName}) } )
+            .catch((err) => reject(err))
     })
 };
 
 module.exports = {
-    pinFileToIPFS
+    deleteFromStorage,
+    uploadToStorage
 }

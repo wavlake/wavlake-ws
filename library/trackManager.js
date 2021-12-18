@@ -2,11 +2,11 @@ const db = require('./db')
 const log = require('loglevel')
 
 // Check play meter
-async function checkPlays(client, trackId) {
+async function checkPlays(cid) {
     return new Promise((resolve, reject) => {
-        log.debug(`Checking plays remaining for ${client}:${trackId} in tracks table`);
+        log.debug(`Checking plays remaining for ${cid} in tracks table`);
         return db.knex('tracks')
-        .where({ client: client, cid: trackId })
+        .where({ cid: cid })
         .first(
             'cid', 
             'play_count', 
@@ -22,11 +22,11 @@ async function checkPlays(client, trackId) {
 }
 
 // Check play price
-async function checkPrice(client, trackId) {
+async function checkPrice(cid) {
     return new Promise((resolve, reject) => {
-        log.debug(`Checking price for ${client}:${trackId} in tracks table`);
+        log.debug(`Checking price for ${cid} in tracks table`);
         return db.knex('tracks')
-                .where({ client: client, cid: trackId })
+                .where({ cid: cid })
                 .first('msats_per_play')
                 .then(data => {
                     resolve(data)
@@ -38,17 +38,18 @@ async function checkPrice(client, trackId) {
 }
 
 // Create new track
-async function createTrack(client, trackId, initPlaysRemaining, msatsPerPlay) {
+async function createTrack(owner, bucket, trackId, initPlaysRemaining, msatsPerPlay) {
     return new Promise((resolve, reject) => {
-        log.debug(`Creating new track ${client}:${trackId}`);
+        log.debug(`Creating new track ${owner}:${trackId}`);
         return db.knex('tracks')
-                .insert({ client: client, 
+                .insert({ owner: owner, 
+                          bucket: bucket,
                           cid: trackId,
                           play_count: 0,
                           plays_remaining: parseInt(initPlaysRemaining),
                           msats_per_play: parseInt(msatsPerPlay) })
                 .then(data => {
-                    log.debug(`Created new track ${client}:${trackId}, ${data}`);
+                    log.debug(`Created new track ${owner}:${trackId}, ${data}`);
                     resolve(data)
                     })
                 .catch(err => {
@@ -59,14 +60,14 @@ async function createTrack(client, trackId, initPlaysRemaining, msatsPerPlay) {
 }
 
 // Delete track
-async function deleteTrack(client, trackId) {
+async function deleteTrack(owner, cid) {
     return new Promise((resolve, reject) => {
-        log.debug(`Deleting track ${client}:${trackId}`);
+        log.debug(`Deleting track ${owner}:${cid}`);
         return db.knex('tracks')
-                .where({ client: client, cid: trackId })
+                .where({ cid: cid })
                 .del()
                 .then(data => {
-                    log.debug(`Deleted track ${client}:${trackId}, ${data}`);
+                    log.debug(`Deleted track ${owner}:${cid}, ${data}`);
                     resolve(data)
                     })
                 .catch(err => {
@@ -78,16 +79,16 @@ async function deleteTrack(client, trackId) {
 
 // TODO: Raise error so plays remaining cannot go below 0
 // Add to play count and subtract from plays remaining
-async function markPlay(client, trackId, count) {
+async function markPlay(cid, count) {
     return new Promise((resolve, reject) => {
-        log.debug(`Adding to play count for track ${client}:${trackId}`);
+        log.debug(`Adding to play count for track ${cid}`);
         return db.knex('tracks')
-                .where({ client: client, cid: trackId })
+                .where({ cid: cid })
                 .increment({play_count: count})
                 .then(() => {
-                    log.debug(`Subtracting from plays remaining for track ${client}:${trackId}`);
+                    log.debug(`Subtracting from plays remaining for track ${cid}`);
                     return db.knex('tracks')
-                        .where({ client: client, cid: trackId })
+                        .where({ cid: cid })
                         .decrement({plays_remaining: count})
                         .update({
                             updated_at: db.knex.fn.now()
@@ -106,11 +107,11 @@ async function markPlay(client, trackId, count) {
 }
 
 // Recharge play meter
-async function rechargePlays(client, trackId, increment) {
+async function rechargePlays(cid, increment) {
     return new Promise((resolve, reject) => {
-        log.debug(`Recharging plays remaining for track ${client}:${trackId}`);
+        log.debug(`Recharging plays remaining for track ${cid}`);
         return db.knex('tracks')
-                .where({ client: client, cid: trackId })
+                .where({ cid: cid })
                 .increment({plays_remaining: increment})
                 .update({
                     updated_at: db.knex.fn.now()

@@ -28,9 +28,9 @@
   },
   "homepage": "https://github.com/wavlake/wavlake-api#readme",
   "dependencies": {
+    "@google-cloud/storage": "^5.16.1",
     "@grpc/grpc-js": "^1.3.7",
     "@grpc/proto-loader": "^0.6.5",
-    "@pinata/sdk": "^1.1.23",
     "bcrypt": "^5.0.1",
     "body-parser": "^1.19.0",
     "compression": "1.7.4",

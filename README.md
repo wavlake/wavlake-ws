@@ -51,6 +51,18 @@ Then seed the database:
 
 `knex seed:run`
 
+#### Migrations in Production
+
+! Backup/Clone DB !
+`.clone data/db-0.1.sqlite`
+
+Make a copy of the old table:
+`CREATE TABLE tracks_0_1 AS SELECT * from tracks;`
+
+Run the latest migration:
+`knex migrate:up <name-of-migration>`
+
+Run the corresponding insert script (located in `db/scripts`)
 
 ### Docker
 

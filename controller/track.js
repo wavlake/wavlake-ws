@@ -1,11 +1,9 @@
 const log = require('loglevel')
-const apiKeys = require('../.keys/api_keys.json')
 const trackManager = require('../library/trackManager')
 const invoiceManager = require('../library/invoiceManager')
 const storage = require('../library/storage')
-const pinataSDK = require('@pinata/sdk');
 
-const pinata = pinataSDK(process.env.PINATA_KEY, process.env.PINATA_SECRET);
+const client = "placeholder"
 
 // Error handling
 // Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
@@ -22,23 +20,14 @@ const handleErrorAsync = (fn) => async (req, res, next) => {
 
 exports.check = handleErrorAsync(async (req, res, next) => {
 
-  const client = apiKeys['clients']
-                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
-                               .toString()
-                               .split(':')[0]]
-                        ['pubkey']
-  console.log(client)
-
   const request = { 
-    // client: apiKeys['clients'][req.query.client]['pubkey'],
-    trackId: req.query.trackId,
+    cid: req.query.trackId,
   };
 
-  const check = await trackManager.checkPlays(client, request.trackId)
+  const check = await trackManager.checkPlays(request.cid)
 
   if (check) {
     res.status(200).json( { 
-                            client: check.client,
                             cid: check.cid,
                             play_count: check.play_count,
                             plays_remaining: check.plays_remaining,
@@ -56,31 +45,30 @@ exports.check = handleErrorAsync(async (req, res, next) => {
 
 exports.create = handleErrorAsync(async (req, res, next) => {
 
-  const client = apiKeys['clients']
-                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
-                              .toString()
-                              .split(':')[0]]
-                        ['pubkey']
+
 
   const request = {
+    owner: req.body.owner,
+    bucket: req.body.bucket,
     trackId: req.body.trackId, 
     initPlaysRemaining: req.body.initPlaysRemaining, 
     msatsPerPlay: req.body.msatsPerPlay
   }
 
-  log.debug(`Creating track ${client}:${request.trackId} in tracks table`);
+  log.debug(`Creating track ${request.owner}:${request.trackId} in tracks table`);
 
-  const create = await trackManager.createTrack( client,
+  const create = await trackManager.createTrack( request.owner,
+                                                 request.bucket,
                                                  request.trackId,
                                                  request.initPlaysRemaining,
                                                  request.msatsPerPlay )
 
   if (create) {
-    const check = await trackManager.checkPlays(client, request.trackId)
+    const check = await trackManager.checkPlays(request.trackId)
 
     if (check) {
       res.status(200).json( { 
-                              client: client,
+                              owner: check.owner,
                               cid: check.cid,
                               play_count: check.play_count,
                               plays_remaining: check.plays_remaining,
@@ -98,53 +86,51 @@ exports.create = handleErrorAsync(async (req, res, next) => {
 
 exports.delete = handleErrorAsync(async (req, res, next) => {
 
-  const client = apiKeys['clients']
-                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
-                              .toString()
-                              .split(':')[0]]
-                        ['pubkey']
+
 
   const request = {
-    trackId: req.body.trackId
+    owner: req.body.owner,
+    bucket: req.body.bucket,
+    cid: req.body.cid
   }
 
-  log.debug(`Deleting track ${client}:${request.trackId} in tracks table`);
+  log.debug(`Deleting track ${request.owner}:${request.cid} in tracks table`);
+
+  storage.deleteFromStorage(request.bucket, request.owner, request.cid)
+    .then(() => trackManager.deleteTrack(request.owner, request.cid))
+    .then((data) => res.status(200).json(data))
+    .catch((err) => log.error(err))
 
   // Delete media from IPFS
-  const unpin = await pinata.unpin(request.trackId)
-                        // Delete track record from db
-                        .then(() => trackManager.deleteTrack(client, request.trackId))
-                        .then((result) => res.status(200).json(result))
-                        .catch((err) => log.error(err))
+  // const unpin = await pinata.unpin(request.trackId)
+  //                       // Delete track record from db
+  //                       
+  //                       .then((result) => res.status(200).json(result))
+  //                       .catch((err) => log.error(err))
 
 });
 
 exports.mark = handleErrorAsync(async (req, res, next) => {
 
-  const client = apiKeys['clients']
-                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
-                              .toString()
-                              .split(':')[0]]
-                        ['pubkey']
+
 
   const request = { 
-    // client: apiKeys["clients"][req.body.client]['pubkey'],
-    trackId: req.body.trackId,
+    cid: req.body.cid,
     count: req.body.count
   };
 
-  const check = await trackManager.checkPlays(client, request.trackId)
+  const check = await trackManager.checkPlays(request.cid)
 
   if (request.count <= check.plays_remaining) {
-    const add = await trackManager.markPlay(client, request.trackId, request.count)
+    const add = await trackManager.markPlay(request.cid, request.count)
 
     if (add === 1) {
-      // res.status(200).json( `Updated play count and plays remaining by ${request.count} for ${request.trackId}` )
-      const check = await trackManager.checkPlays(client, request.trackId)
+      // res.status(200).json( `Updated play count and plays remaining by ${request.count} for ${request.cid}` )
+      const check = await trackManager.checkPlays(request.cid)
 
       if (check) {
         res.status(200).json( { 
-                                client: check.client,
+                                owner: check.owner,
                                 cid: check.cid,
                                 play_count: check.play_count,
                                 plays_remaining: check.plays_remaining,
@@ -167,14 +153,9 @@ exports.mark = handleErrorAsync(async (req, res, next) => {
 
 exports.recharge = handleErrorAsync(async (req, res, next) => {
 
-  const client = apiKeys['clients']
-                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
-                              .toString()
-                              .split(':')[0]]
-                        ['pubkey']
+
 
   const request = { 
-    // client: apiKeys["clients"][req.body.client]['pubkey'],
     r_hash_str: req.body.r_hash_str
   };
 
@@ -193,7 +174,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
   }
 
   // Set play increment according to payment amount and track's sats_per_play value
-  const cost = await trackManager.checkPrice(client, status.memo)
+  const cost = await trackManager.checkPrice(status.memo)
   const increment = (Number(status.value_msat) / cost['msats_per_play'])
   // console.log(increment)
 
@@ -204,7 +185,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
                                                 status.settled,
                                                 status.memo)
                                     .then(() => {
-                                      trackManager.rechargePlays(client, status.memo, increment)
+                                      trackManager.rechargePlays(status.memo, increment)
                                     })
                                     .then(() => {
                                       return invoiceManager.markRecharged(request.r_hash_str)
@@ -213,11 +194,10 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
   
     if (add) {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
-      const check = await trackManager.checkPlays(client, status.memo)
+      const check = await trackManager.checkPlays(status.memo)
 
       if (check) {
         res.status(200).json( { 
-                                client: check.client,
                                 cid: check.cid,
                                 play_count: check.play_count,
                                 plays_remaining: check.plays_remaining,
@@ -235,18 +215,17 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
 
   // Only recharge track if r_hash_str value already exists in db but recharged is false
   else if (status.settled && !record[0].recharged) {
-    const add = await trackManager.rechargePlays(client, status.memo, increment)
+    const add = await trackManager.rechargePlays(status.memo, increment)
                                   .then(() => {
                                     return invoiceManager.markRecharged(request.r_hash_str)
                                   })
 
     if (add) {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
-      const check = await trackManager.checkPlays(client, rstatus.memo)
+      const check = await trackManager.checkPlays(status.memo)
 
       if (check) {
         res.status(200).json( { 
-                                client: check.client,
                                 cid: check.cid,
                                 play_count: check.play_count,
                                 plays_remaining: check.plays_remaining,
@@ -266,11 +245,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
 
 exports.upload = handleErrorAsync(async (req, res, next) => {
 
-  const client = apiKeys['clients']
-                        [Buffer.from(req.headers.authorization.split(' ')[1], 'base64')
-                              .toString()
-                              .split(':')[0]]
-                        ['pubkey']
+
 
   // console.log(req.body)
   // log.debug(`Locating files: ${JSON.stringify(req.files)}`);
@@ -278,12 +253,14 @@ exports.upload = handleErrorAsync(async (req, res, next) => {
   const fileObj = req.files.filename;
 
   const request = {
-    title: req.body.title, 
+    title: req.body.title,
+    bucket: req.body.bucket,
+    owner: req.body.owner, 
   }
 
-  log.debug(`Uploading track ${client}:${request.title} to IPFS`);
+  log.debug(`Uploading track ${request.owner}:${request.title} to ${request.bucket}`);
 
-  const upload = await storage.pinFileToIPFS(Buffer.from(fileObj.data, 'base64'), request.title)
+  const upload = await storage.uploadToStorage(Buffer.from(fileObj.data, 'base64'), request.bucket, request.owner)
 
   if (upload) {
     res.status(200).json(upload)
