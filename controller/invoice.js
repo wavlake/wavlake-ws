@@ -16,13 +16,17 @@ const handleErrorAsync = (fn) => async (req, res, next) => {
 // METHODS
 exports.addInvoice = handleErrorAsync(async (req, res, next) => {
 
+    const owner = req.body['owner']
     const title = req.body['title']
     const artist = req.body['artist']
     const cid = req.body['cid']
     const value = req.body['value']
 
+    const ownerData = await lnd.initConnection(owner)
+    // console.log(ownerData)
+    let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
     // Create invoice record excluding r_hash, get record ID
-    invoiceManager.addNewInvoice(value, cid)
+    invoiceManager.addNewInvoice(owner, value, cid)
       .then((data) => {
         const invoiceId = data;
         const request = { 
@@ -46,7 +50,7 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
           }
           
       })
-      })
+    })
 
 
 })

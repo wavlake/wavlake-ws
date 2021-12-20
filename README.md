@@ -30,15 +30,31 @@ wavlake-ws is built on the [Express](https://expressjs.com/) javascript framewor
 lncli bakemacaroon \
 uri:/lnrpc.Lightning/AddInvoice \
 uri:/lnrpc.Lightning/LookupInvoice \
+uri:/signrpc.Signer/SignMessage \
+uri:/signrpc.Signer/VerifyMessage \
+uri:/walletrpc.WalletKit/DeriveKey \
 uri:/invoicesrpc.Invoices/SubscribeSingleInvoice
 ```
 
-### Database (sqlite3)
+### Database 
+
+postgresql
+
+For local development:
+`docker run --name postgres-dev -p 5432:5432 -e POSTGRES_PASSWORD=wavlake -d postgres`
+
+Migration:
+`knex migrate:latest`
+
+sqlite3 (deprecated)
+
+Note: sqlite3 behavior can vary slightly from postgresql, not a complete drop-in replacement
 
 Inspect with `sqlite3` command.
 
 Load db in cli with
 `.open db/database.sqlite`
+
 
 #### Initialization
 NOTE: `./data/db.sqlite` file must exist!

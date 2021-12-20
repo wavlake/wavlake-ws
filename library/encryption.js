@@ -1,36 +1,35 @@
 const fs = require("fs");
 const stream = require("stream");
 
-const config = {
-    api_secret: process.env.API_SECRET,
-  }
-
 const iv = Buffer.alloc(16, 0); // Initialization vector.
 
 // Decrypt string
-async function decryptString(hash) {
+async function decryptString(hash, password, salt) {
 
     const algorithm = 'aes-192-cbc';
     // First, we'll generate the key. The key length is dependent on the algorithm.
     // In this case for aes192, it is 24 bytes (192 bits).
-    await import('crypto')
-        .then(async (crypto) => {
-            crypto.scrypt(config.api_secret, 'pepper', 24, (err, key) => {
-                if (err) throw err;
+    return new Promise((resolve, reject) => {
+        import('crypto')
+            .then(async (crypto) => {
+                crypto.scrypt(password, salt, 24, (err, key) => {
+                    if (err) reject(err);
 
-                const decipher = crypto.createDecipheriv(algorithm, key, iv);
-            
-                let decrypted = decipher.update(hash, 'hex', 'utf8');
-                decrypted += decipher.final('utf8');
-                console.log(decrypted);
+                    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+                
+                    let decrypted = decipher.update(hash, 'hex', 'utf8');
+                    decrypted += decipher.final('utf8');
+                    // console.log(decrypted);
+                    return resolve(decrypted);
 
-            });
+                });
+            })
         })
 }
 
 
 // Encrypt string
-async function encryptString(str) {
+async function encryptString(str, password, salt) {
 
     const algorithm = 'aes-192-cbc';
     // First, we'll generate the key. The key length is dependent on the algorithm.
@@ -38,7 +37,7 @@ async function encryptString(str) {
     return new Promise((resolve, reject) => {
         import('crypto')
         .then(async (crypto) => {
-            crypto.scrypt(config.api_secret, 'pepper', 24, (err, key) => {
+            crypto.scrypt(password, salt, 24, (err, key) => {
                 if (err) reject(err);
                 const cipher = crypto.createCipheriv(algorithm, key, iv);
             

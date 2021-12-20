@@ -48,9 +48,9 @@ async function createTrack(owner, bucket, trackId, initPlaysRemaining, msatsPerP
                           cid: trackId,
                           play_count: 0,
                           plays_remaining: parseInt(initPlaysRemaining),
-                          msats_per_play: parseInt(msatsPerPlay) })
+                          msats_per_play: parseInt(msatsPerPlay) },  ['id'] )
                 .then(data => {
-                    log.debug(`Created new track ${owner}:${trackId}, ${data}`);
+                    log.debug(`Created new track ${owner}:${trackId}, id: ${data[0]['id']}`);
                     resolve(data)
                     })
                 .catch(err => {

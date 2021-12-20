@@ -14,6 +14,7 @@ const corsHost = process.env.CORS_HOST
 // Import routes
 const authRouter = require('./routes/auth-route')
 const invoiceRouter = require('./routes/invoice-route')
+const ownerRouter = require('./routes/owner-route')
 const trackRouter = require('./routes/track-route')
 
 // Set default port for express app
@@ -40,6 +41,7 @@ app.use(fileUpload())
 // ROUTES
 app.use('/auth', authRouter)
 app.use('/invoice', invoiceRouter)
+app.use('/owner', ownerRouter)
 app.use('/track', trackRouter)
 
 // Implement 500 error route

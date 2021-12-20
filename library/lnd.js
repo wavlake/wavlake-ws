@@ -2,7 +2,12 @@
 const grpc = require('grpc')
 const protoLoader = require('@grpc/proto-loader');
 const fs = require("fs");
+const log = require('loglevel')
 const path = require('path');
+const ownerManager = require('./ownerManager')
+const encryption = require('../library/encryption')
+const key_family = 128
+const key_index = 3
 
 const config = {
   macaroon: process.env.MACAROON,
@@ -54,8 +59,7 @@ let sslCreds = grpc.credentials.createSsl(lndCert);
 let credentials = grpc.credentials.combineChannelCredentials(sslCreds, macaroonCreds);
 
 // Create lightning interface
-let lnrpcDescriptor = grpc.loadPackageDefinition(packageDefinition);
-let lnrpc = lnrpcDescriptor.lnrpc;
+let lnrpc = grpc.loadPackageDefinition(packageDefinition).lnrpc;
 let client = new lnrpc.Lightning(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
 // Create invoices interface
@@ -70,9 +74,54 @@ let signer = new signrpc.Signer(`${config.lnd_host}:${config.lnd_port}`, credent
 const walletrpc = grpc.loadPackageDefinition(packageDefinition).walletrpc;
 let walletKit = new walletrpc.WalletKit(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
+
+// Create connection object
+async function initConnection(owner) {
+  log.debug(`Generating lnd connection for ${owner}`);
+  const ownerData = await ownerManager.getOwnerInfo(owner);
+
+  // console.log(ownerData)
+  const lndRequest = { 
+    msg: Buffer.from(owner),
+    key_loc: { "key_family": key_family, 
+                "key_index": key_index },
+    double_hash: false,
+    compact_sig: false
+  };
+  log.debug(`Decrypting config for ${owner}`);
+  return new Promise((resolve, reject) => {
+    signer.signMessage(lndRequest, function(err, response) {
+      if (err) {
+        res.json(err)
+      }
+      else {
+        const signature = Buffer.from(response['signature']).toString('hex');
+        encryption.decryptString(ownerData.config, signature, ownerData['salt'])
+          .then((data) => { 
+            const j = JSON.parse(`${data.replace(/'/g, '"')}`)
+            // Build meta data credentials
+            const metadata = new grpc.Metadata()
+            metadata.add('macaroon', j.macaroon)
+            const macaroonCreds = grpc.credentials.createFromMetadataGenerator((_args, callback) => {
+              callback(null, metadata);
+            });
+
+            // Combine credentials
+            let sslCreds = grpc.credentials.createSsl(Buffer.from(j.cert, 'hex'));
+            let credentials = grpc.credentials.combineChannelCredentials(sslCreds, macaroonCreds);
+            resolve({host: j.host, credentials: credentials})
+          })
+          .catch(err => reject(err))
+      }
+    })
+  })
+}
+
 module.exports = {
     client,
     invoices,
+    initConnection,
+    lnrpc,
     signer,
     walletKit
 }
