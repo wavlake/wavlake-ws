@@ -2,15 +2,32 @@
 
 module.exports = {
 
+  // development: {
+  //   client: 'sqlite3',
+  //   connection: {
+  //     filename: '../data/db.sqlite'
+  //   },
+  //   migrations: {
+  //     tableName: 'knex_migrations'
+  //   }
+  // },
+
   development: {
-    client: 'sqlite3',
+    client: 'postgresql',
     connection: {
-      filename: '../data/db.sqlite'
+      database: 'wavlake-dev',
+      user:     'wavlake',
+      password: 'wavlake'
+    },
+    pool: {
+      min: 2,
+      max: 10
     },
     migrations: {
       tableName: 'knex_migrations'
     }
   },
+
 
   staging: {
     client: 'postgresql',
