@@ -59,20 +59,20 @@ let sslCreds = grpc.credentials.createSsl(lndCert);
 let credentials = grpc.credentials.combineChannelCredentials(sslCreds, macaroonCreds);
 
 // Create lightning interface
-let lnrpc = grpc.loadPackageDefinition(packageDefinition).lnrpc;
-let client = new lnrpc.Lightning(`${config.lnd_host}:${config.lnd_port}`, credentials);
+const lnrpc = grpc.loadPackageDefinition(packageDefinition).lnrpc;
+// let client = new lnrpc.Lightning(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
-// Create invoices interface
+// // Create invoices interface
 const invoicesrpc = grpc.loadPackageDefinition(packageDefinition).invoicesrpc;
-let invoices = new invoicesrpc.Invoices(`${config.lnd_host}:${config.lnd_port}`, credentials);
+// let invoices = new invoicesrpc.Invoices(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
-// Create signer interface
+// // Create signer interface
 const signrpc = grpc.loadPackageDefinition(packageDefinition).signrpc;
 let signer = new signrpc.Signer(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
-// Create walletkit interface
-const walletrpc = grpc.loadPackageDefinition(packageDefinition).walletrpc;
-let walletKit = new walletrpc.WalletKit(`${config.lnd_host}:${config.lnd_port}`, credentials);
+// // Create walletkit interface
+// const walletrpc = grpc.loadPackageDefinition(packageDefinition).walletrpc;
+// let walletKit = new walletrpc.WalletKit(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
 
 // Create connection object
@@ -117,11 +117,38 @@ async function initConnection(owner) {
   })
 }
 
+// // Check invoice status in lnd
+// async function checkStatus(owner, r_hash_str) {
+
+//   const owner = req.body.owner;
+
+//   const request = { 
+//       r_hash: Buffer.from(r_hash_str, 'hex'),
+//     };
+
+//   const ownerData = await initConnection(owner)
+//   // console.log(ownerData);
+//   let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
+
+//   log.debug(`Checking status of ${r_hash_str} invoice in lnd db`);
+//   return new Promise((resolve, reject) => {
+//     ln.lookupInvoice(request, (err, response) => {
+//           if (err) {
+//               reject(err);
+//           }
+//           else {
+//               resolve(response);
+//           }
+//       })
+//   })
+// }
+
 module.exports = {
-    client,
-    invoices,
+    // client,
+    // checkStatus,
+    invoicesrpc,
     initConnection,
     lnrpc,
     signer,
-    walletKit
+    // walletKit
 }

@@ -26,6 +26,7 @@ wavlake-ws is built on the [Express](https://expressjs.com/) javascript framewor
 
 ### lnd
 
+Custom macaroon recipe (output to hex):
 ```
 lncli bakemacaroon \
 uri:/lnrpc.Lightning/AddInvoice \
@@ -34,6 +35,11 @@ uri:/signrpc.Signer/SignMessage \
 uri:/signrpc.Signer/VerifyMessage \
 uri:/walletrpc.WalletKit/DeriveKey \
 uri:/invoicesrpc.Invoices/SubscribeSingleInvoice
+```
+
+TLS cert (output to hex)
+```
+cat <lnd_home>/tls.cert | od -A n -t x1 | sed 's/ //g' | tr -d '\n'
 ```
 
 ### Database 

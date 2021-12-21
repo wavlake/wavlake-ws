@@ -23,7 +23,7 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
     const value = req.body['value']
 
     const ownerData = await lnd.initConnection(owner)
-    // console.log(ownerData)
+    // console.log(ownerData);
     let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
     // Create invoice record excluding r_hash, get record ID
     invoiceManager.addNewInvoice(owner, value, cid)
@@ -35,7 +35,7 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
           expiry: 180
         };
             // Generate invoice
-        lnd.client.addInvoice(request, function(err, response) {
+        ln.addInvoice(request, function(err, response) {
           if (err) {
             res.json(err)
           }
@@ -51,16 +51,21 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
           
       })
     })
-
-
 })
 
 exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
+
+    const owner = req.body.owner;
+
     const request = { 
-        r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
-      };
+      r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
+    };
     
-    lnd.client.lookupInvoice(request, function(err, response) {
+    const ownerData = await lnd.initConnection(owner)
+    // console.log(ownerData);
+    let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
+  
+    ln.lookupInvoice(request, function(err, response) {
         if (err) {
           res.json(err)
         }
@@ -72,11 +77,18 @@ exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
 })
 
 exports.monitorInvoice = handleErrorAsync(async (req, res, next) => {
+
+    const owner = req.body.owner;
+
     const request = { 
-        r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
-      };
+      r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
+    };
+
+    const ownerData = await lnd.initConnection(owner)
+    // console.log(ownerData);
+    let lninvoice = new lnd.invoicesrpc.Invoices(`${ownerData.host}`, ownerData.credentials);
     
-    let call = lnd.invoices.subscribeSingleInvoice(request);
+    let call = lninvoice.subscribeSingleInvoice(request);
     call.on('data', function(response) {
         // console.log(response)
         // A response was received from the server.
