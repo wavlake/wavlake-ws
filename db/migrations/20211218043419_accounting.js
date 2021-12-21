@@ -3,6 +3,7 @@ exports.up = function(knex) {
     return knex.schema
       .createTable('plays', function (table) {
         table.increments('id');
+        table.unique(['cid', 'date_utc']);
         table.string('cid', 128).notNullable();
         table.string('date_utc', 128).notNullable();
         table.integer('play_count').unsigned().notNullable();
@@ -11,9 +12,10 @@ exports.up = function(knex) {
       })
       .createTable('tips', function (table) {
         table.increments('id');
-        table.string('date_utc', 128).notNullable();
+        table.unique(['cid', 'date_utc']);
         table.string('cid', 128).notNullable();
-        table.integer('tip_total_msats').unsigned().notNullable();
+        table.string('date_utc', 128).notNullable();
+        table.integer('total_msats').unsigned().notNullable();
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
      })
