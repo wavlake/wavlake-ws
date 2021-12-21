@@ -121,8 +121,9 @@ exports.mark = handleErrorAsync(async (req, res, next) => {
 
   if (request.count <= check.plays_remaining) {
     const add = await trackManager.markPlay(request.cid, request.count)
-
+    // console.log(add)
     if (add === 1) {
+      
       // res.status(200).json( `Updated play count and plays remaining by ${request.count} for ${request.cid}` )
       const check = await trackManager.checkPlays(request.cid)
 

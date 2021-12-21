@@ -1,5 +1,6 @@
 const db = require('./db')
-const log = require('loglevel')
+const log = require('loglevel');
+const date = require('./date')
 
 // Check play meter
 async function checkPlays(cid) {
@@ -81,30 +82,53 @@ async function deleteTrack(owner, cid) {
 // TODO: Raise error so plays remaining cannot go below 0
 // Add to play count and subtract from plays remaining
 async function markPlay(cid, count) {
-    return new Promise((resolve, reject) => {
+    // return new Promise((resolve, reject, trx) => {
         log.debug(`Adding to play count for track ${cid}`);
-        return db.knex('tracks')
+
+        const dateString = date.get();
+
+        return db.knex.transaction((trx) => {
+            return db.knex('tracks')
                 .where({ cid: cid })
                 .increment({play_count: count})
-                .then(() => {
-                    log.debug(`Subtracting from plays remaining for track ${cid}`);
-                    return db.knex('tracks')
-                        .where({ cid: cid })
-                        .decrement({plays_remaining: count})
-                        .update({
-                            updated_at: db.knex.fn.now()
-                          })
-                        .then(data => {
-                            resolve(data)
-                        })
-                        .catch(err => {
-                            reject(err)
-                        })
-                })
-                .catch(err => {
-                    reject(err)
-                })
+                .transacting(trx)
+            .then(() => {
+                return db.knex('plays')
+                        .insert({ cid: cid, date_utc: dateString, play_count: count})
+                        .onConflict(['cid', 'date_utc'])
+                        .merge([])
+                        .where({ cid: cid, date_utc: dateString })
+                        .increment({ play_count: count})
+                        .update({ updated_at: db.knex.fn.now()})
+                        .transacting(trx)
+            })
+            .then(() => trx.commit)
+            .then(() => { return 1 })
+            .catch(trx.rollback)
         })
+
+        // return db.knex('tracks')
+        //         .where({ cid: cid })
+        //         .increment({play_count: count})
+        //         .then(() => {
+        //             log.debug(`Subtracting from plays remaining for track ${cid}`);
+        //             return db.knex('tracks')
+        //                 .where({ cid: cid })
+        //                 .decrement({plays_remaining: count})
+        //                 .update({
+        //                     updated_at: db.knex.fn.now()
+        //                   })
+        //                 .then(data => {
+        //                     resolve(data)
+        //                 })
+        //                 .catch(err => {
+        //                     reject(err)
+        //                 })
+        //         })
+        //         .catch(err => {
+        //             reject(err)
+        //         })
+        // })
 }
 
 // Recharge play meter

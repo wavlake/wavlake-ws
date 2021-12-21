@@ -1,6 +1,7 @@
 const db = require('./db')
 const lnd = require('./lnd')
 const log = require('loglevel')
+const date = require('./date')
 const{ randomUUID } = require('crypto')
 
 // Add new hash to invoice table
@@ -133,13 +134,13 @@ async function markRecharged(r_hash_str) {
         })
     }
 
-// Add new invoice to invoice table
+// Update invoice hash in invoice table
 async function updateInvoiceHash(invoiceId,
                                  r_hash_str) {
     log.debug(`Updating invoice hash ${invoiceId} in invoices table`);
     return db.knex('invoices')
         .where({ id: parseInt(invoiceId) })
-        .update( { r_hash_str: r_hash_str } )
+        .update( { r_hash_str: r_hash_str, updated_at: db.knex.fn.now() } )
         .then(data => {
                 return data
         })
@@ -151,15 +152,38 @@ async function updateInvoiceHash(invoiceId,
 // Update invoice settlement status
 async function updateInvoiceSettled(r_hash_str) {
     log.debug(`Updating invoice ${r_hash_str} as settled in invoices table`);
+
+    const dateString = date.get();
+
+    return db.knex.transaction((trx) => {
         return db.knex('invoices')
             .where({ r_hash_str: r_hash_str })
-            .update( { settled: true } )
-            .then(data => {
-                return data
-            })
-            .catch(err => {
-                return err
-            })
+            .update( { settled: true }, ['cid', 'price_msat'] )
+            .transacting(trx)
+        .then((data) => {
+            return db.knex('tips')
+                .insert({ cid: data[0]['cid'], date_utc: dateString, total_msats: data[0]['price_msat']})
+                .onConflict(['cid', 'date_utc'])
+                .merge([])
+                .where({ cid: data[0]['cid'], date_utc: dateString })
+                .increment({ total_msats: data[0]['price_msat']})
+                .update({ updated_at: db.knex.fn.now()})       
+                .transacting(trx)
+        })
+        .then(() => trx.commit)
+        .then(() => { return 1 })
+        .catch(trx.rollback)
+    })
+
+        // return db.knex('invoices')
+        //     .where({ r_hash_str: r_hash_str })
+        //     .update( { settled: true } )
+        //     .then(data => {
+        //         return data
+        //     })
+        //     .catch(err => {
+        //         return err
+        //     })
 }
 
 module.exports = {
