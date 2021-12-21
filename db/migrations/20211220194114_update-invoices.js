@@ -1,7 +1,7 @@
 
 exports.up = function(knex) {
     return knex.schema
-        .dropTable('invoices')
+        .dropTableIfExists('invoices')
         .createTable('invoices', function (table) {
         table.increments('id');
         table.string('owner', 128).notNullable();

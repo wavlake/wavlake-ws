@@ -1,7 +1,7 @@
 
 exports.up = function(knex) {
   return knex.schema
-    .dropTable('tracks')
+    .dropTableIfExists('tracks')
     .createTable('tracks', function (table) {
         table.increments('id');
         table.string('owner', 128).notNullable();

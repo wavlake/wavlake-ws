@@ -22,6 +22,7 @@ exports.up = function(knex) {
      .createTable('owners', function (table) {
         table.increments('id');
         table.string('salt', 128).notNullable();
+        table.unique('user_id');
         table.string('user_id', 128).notNullable();
         table.string('server_type', 128).notNullable();
         table.text('config').notNullable();
@@ -31,6 +32,7 @@ exports.up = function(knex) {
      })
      .createTable('fees', function (table) {
         table.increments('id');
+        table.unique(['owner', 'fee_interval']);
         table.string('owner', 128).notNullable();
         table.integer('fee_interval').unsigned().notNullable();
         table.boolean('due').notNullable();
