@@ -10,6 +10,7 @@ exports.up = function(knex) {
         table.integer('play_count').unsigned().notNullable();
         table.integer('plays_remaining').unsigned().notNullable();
         table.integer('msats_per_play').unsigned().notNullable();
+        table.integer('total_msats_earned').unsigned().notNullable().defaultTo(0);
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
       })

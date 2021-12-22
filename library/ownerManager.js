@@ -15,7 +15,7 @@ async function createOwner(user_id,
                        server_type: server_type,
                        config: config }, ['id'] )
             .then(data => {
-                console.log(data);
+                // console.log(data);
                 return data[0]['id']
                 })
             .catch(err => {

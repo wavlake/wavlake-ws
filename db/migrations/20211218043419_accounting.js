@@ -6,7 +6,7 @@ exports.up = function(knex) {
         table.unique(['cid', 'date_utc']);
         table.string('cid', 128).notNullable();
         table.string('date_utc', 128).notNullable();
-        table.integer('play_count').unsigned().notNullable();
+        table.integer('play_count').unsigned().notNullable().defaultTo(0);
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
       })
@@ -15,11 +15,10 @@ exports.up = function(knex) {
         table.unique(['cid', 'date_utc']);
         table.string('cid', 128).notNullable();
         table.string('date_utc', 128).notNullable();
-        table.integer('total_msats').unsigned().notNullable();
+        table.integer('total_msats').unsigned().notNullable().defaultTo(0);
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
-     })
-     .createTable('owners', function (table) {
+     }).createTable('owners', function (table) {
         table.increments('id');
         table.string('salt', 128).notNullable();
         table.unique('user_id');
@@ -30,6 +29,7 @@ exports.up = function(knex) {
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
      })
+     
      .createTable('fees', function (table) {
         table.increments('id');
         table.unique(['owner', 'fee_interval']);

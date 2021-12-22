@@ -83,25 +83,32 @@ async function deleteTrack(owner, cid) {
 // Add to play count and subtract from plays remaining
 async function markPlay(cid, count) {
     // return new Promise((resolve, reject, trx) => {
-        log.debug(`Adding to play count for track ${cid}`);
+        log.debug(`Adding to play count and subtracing from plays remaining for track ${cid}`);
 
         const dateString = date.get();
-
+        
         return db.knex.transaction((trx) => {
             return db.knex('tracks')
                 .where({ cid: cid })
                 .increment({play_count: count})
+                .where({ cid: cid })
+                .decrement({plays_remaining: count})
                 .transacting(trx)
             .then(() => {
+                log.debug(`Creating daily play record for ${cid}`);
                 return db.knex('plays')
-                        .insert({ cid: cid, date_utc: dateString, play_count: count})
-                        .onConflict(['cid', 'date_utc'])
-                        .merge([])
-                        .where({ cid: cid, date_utc: dateString })
-                        .increment({ play_count: count})
-                        .update({ updated_at: db.knex.fn.now()})
-                        .transacting(trx)
+                    .insert({ cid: cid, date_utc: dateString })
+                    .onConflict(['cid', 'date_utc'])
+                    .ignore()
+                    .transacting(trx)
             })
+            .then(() => {
+                return db.knex('plays')
+                    .where({ cid: cid, date_utc: dateString })
+                    .increment({ play_count: count})
+                    .update({ updated_at: db.knex.fn.now()})
+                    .transacting(trx)
+            })           
             .then(() => trx.commit)
             .then(() => { return 1 })
             .catch(trx.rollback)
