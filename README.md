@@ -20,7 +20,7 @@ Storage: IPFS (via Piñata)
 
 ## Development
 
-wavlake-ws is built on the [Express](https://expressjs.com/) javascript framework and runs on a sqlite3 database by default.
+wavlake-ws is built on the [Express](https://expressjs.com/) javascript framework and runs on a Postgres database using knexjs as an interface.
 
 `lnd` is required with access to macaroon and tls cert for host. [Polar](https://lightningpolar.com/) works well as a local development backend.
 
