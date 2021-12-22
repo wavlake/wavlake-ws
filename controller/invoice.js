@@ -31,7 +31,7 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
         const invoiceId = data;
         const request = { 
           value: value,
-          memo: `Wavlake: ${title} by ${artist} (id:${res})`,
+          memo: `Wavlake: ${title} by ${artist} (ID: ${data})`,
           expiry: 180
         };
             // Generate invoice

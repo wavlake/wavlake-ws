@@ -8,8 +8,8 @@ const router = express.Router()
 
 // Routes
 
+router.get('/get-info', ownerRoute.getInfo)
 router.post('/create', ownerRoute.create)
-
 router.post('/decrypt', ownerRoute.decrypt)
 
 // Export router

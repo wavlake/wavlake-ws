@@ -17,6 +17,32 @@ const handleErrorAsync = (fn) => async (req, res, next) => {
   }
 };
 
+// GET
+
+exports.getInfo = handleErrorAsync(async (req, res, next) => {
+
+  const request = { 
+    owner: req.query.userId,
+    serverType: req.query.serverType,
+  };
+
+  const ownerData = await lnd.initConnection(request.owner)
+  // console.log(ownerData);
+  let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
+  // Create invoice record excluding r_hash, get record ID
+  ln.getInfo({}, function(err, response) {
+    if (err) {
+      res.status(500).json(err)
+    }
+    else {
+      // Update invoice with r_hash
+      const lndResponse = response;
+      res.status(200).json(response);
+    }   
+  })
+
+});
+
 // POST
 
 exports.create = handleErrorAsync(async (req, res, next) => {
