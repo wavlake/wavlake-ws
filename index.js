@@ -39,7 +39,6 @@ app.use(express.json())
 app.use(fileUpload())
 
 // ROUTES
-app.use('/auth', authRouter)
 app.use('/invoice', invoiceRouter)
 app.use('/owner', ownerRouter)
 app.use('/track', trackRouter)

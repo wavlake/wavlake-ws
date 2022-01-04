@@ -1,21 +1,24 @@
 # wavlake-ws (alpha)
 
-wavlake-ws (web service) is a fully open-source tool designed to be run by individuals who want to sell media for bitcoin payments over the Lightning Network. The service's endpoints are designed to power any front-end application, either as a single backend service or as part of a collection. [wavlake.com](https://wavlake.com), for example, runs on wavlake-ws as its backend.
+wavlake-ws (web service) is a fully open-source tool designed to be run by individuals who want to sell media for bitcoin payments over the Lightning Network. The service's endpoints are designed to power any front-end application, either as a single backend service or as part of a collection. [wavlake.com](https://wavlake.com), for example, runs wavlake-ws as its backend.
 
 Currently, wavlake-ws requires `lnd` as a Lightning service implementation. We hope to support other implementations in the future.
 
 NOTE: wavlake-ws is currently in alpha release mode. We appreciate your patience and support. Please add any findings of bugs or issues to the [issues](https://github.com/wavlake/wavlake-ws/issues) page.
 
-## Overview
+### Overview
 
 Runtime: Node
 Framework: Express
 Lightning: lnd
-Storage: IPFS (via Piñata)
 
-## Install
+### Install
 
 `npm install`
+
+### Run
+
+`npm start`
 
 
 ## Development
@@ -24,7 +27,11 @@ wavlake-ws is built on the [Express](https://expressjs.com/) javascript framewor
 
 `lnd` is required with access to macaroon and tls cert for host. [Polar](https://lightningpolar.com/) works well as a local development backend.
 
-### lnd
+### LND Credentials
+
+Credentials are stored as encrypted JSON objects containing the owner's LND host:port, macaroon (as hex), and TLS cert (as hex).
+
+Below are shell commands to create required the macaroon and cert.
 
 Custom macaroon recipe (output to hex):
 ```
@@ -42,11 +49,13 @@ TLS cert (output to hex)
 cat <lnd_home>/tls.cert | od -A n -t x1 | sed 's/ //g' | tr -d '\n'
 ```
 
+## Development
+
 ### Database 
 
 postgresql
 
-For local development:
+For local development on Docker:
 `docker run --name postgres-dev -p 5432:5432 -e POSTGRES_PASSWORD=wavlake -d postgres`
 
 Migration:
@@ -62,8 +71,7 @@ Load db in cli with
 `.open db/database.sqlite`
 
 
-#### Initialization
-NOTE: `./data/db.sqlite` file must exist!
+#### Database Initialization
 
 From the `db` directory, run:
 
@@ -86,7 +94,7 @@ Run the latest migration:
 
 Run the corresponding insert script (located in `db/scripts`)
 
-### Docker
+### Docker (TODO)
 
 Build container:
 

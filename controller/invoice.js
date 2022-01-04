@@ -21,12 +21,13 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
     const artist = req.body['artist']
     const cid = req.body['cid']
     const value = req.body['value']
+    const is_fee = false // TODO: Implement fee collection logic
 
     const ownerData = await lnd.initConnection(owner)
     // console.log(ownerData);
     let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
     // Create invoice record excluding r_hash, get record ID
-    invoiceManager.addNewInvoice(owner, value, cid)
+    invoiceManager.addNewInvoice(owner, value, cid, is_fee)
       .then((data) => {
         const invoiceId = data;
         const request = { 
