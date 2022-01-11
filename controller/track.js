@@ -198,6 +198,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
                                 play_count: check.play_count,
                                 plays_remaining: check.plays_remaining,
                                 msats_per_play: check.msats_per_play,
+                                total_msats_earned: check.total_msats_earned
                                } )
       }
       else if (!check) {
@@ -226,6 +227,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
                                 play_count: check.play_count,
                                 plays_remaining: check.plays_remaining,
                                 msats_per_play: check.msats_per_play,
+                                total_msats_earned: check.total_msats_earned
                                } )
       }
       else if (!check) {

@@ -12,7 +12,8 @@ async function checkPlays(cid) {
             'cid', 
             'play_count', 
             'plays_remaining', 
-            'msats_per_play')
+            'msats_per_play',
+            'total_msats_earned')
         .then(data => {
             resolve(data)
             })

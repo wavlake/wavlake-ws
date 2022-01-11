@@ -4,13 +4,13 @@ const log = require('loglevel')
 const{ randomUUID } = require('crypto')
 
 // Create owner
-async function createOwner(user_id,
+async function createOwner(owner_id,
                            salt,
                            server_type,
                            config) {
-    log.debug(`Adding owner ${user_id} to owners table`);
+    log.debug(`Adding owner ${owner_id} to owners table`);
     return db.knex('owners')
-            .insert( { user_id: user_id,
+            .insert( { owner_id: owner_id,
                        salt: salt,
                        server_type: server_type,
                        config: config }, ['id'] )
@@ -25,10 +25,10 @@ async function createOwner(user_id,
 }
 
 // Get salt for owner
-async function getOwnerInfo(user_id) {
-    log.debug(`Fetching owner ${user_id} from owners table`);
+async function getOwnerInfo(owner_id) {
+    log.debug(`Fetching owner ${owner_id} from owners table`);
     return db.knex('owners')
-        .where( { user_id: user_id } )
+        .where( { owner_id: owner_id } )
         .first('salt', 'config')
         .then(data => {
             // console.log(data);

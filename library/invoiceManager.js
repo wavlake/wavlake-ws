@@ -49,7 +49,7 @@ async function addNewInvoice(owner,
 
 // Check hash in invoice table
 async function checkHash(r_hash_str) {
-    log.debug(`Checking hash ${r_hash_str} exists in invoices table`);
+    log.debug(`Checking invoice hash ${r_hash_str} exists in invoices table`);
     return db.knex('invoices')
             .where('r_hash_str', '=', r_hash_str)
             .then(data => {
@@ -124,7 +124,7 @@ async function getOwnerFromInvoice(r_hash_str) {
 
 // Add new hash to invoice table
 async function markRecharged(r_hash_str) {
-    log.debug(`Marking ${r_hash_str} invoice as used for recharging in invoices table`);
+    log.debug(`Marking invoice hash  ${r_hash_str} as used for recharging in invoices table`);
     return db.knex('invoices')
         .where({ r_hash_str: r_hash_str })
         .update( { recharged: true } )
@@ -139,7 +139,7 @@ async function markRecharged(r_hash_str) {
 // Update invoice hash in invoice table
 async function updateInvoiceHash(invoiceId,
                                  r_hash_str) {
-    log.debug(`Updating invoice hash ${invoiceId} in invoices table`);
+    log.debug(`Updating invoice id: ${invoiceId} in invoices table`);
     return db.knex('invoices')
         .where({ id: parseInt(invoiceId) })
         .update( { r_hash_str: r_hash_str, updated_at: db.knex.fn.now() } )
@@ -153,7 +153,7 @@ async function updateInvoiceHash(invoiceId,
 
 // Update invoice settlement status
 async function updateInvoiceSettled(r_hash_str) {
-    log.debug(`Updating invoice ${r_hash_str} as settled in invoices table`);
+    log.debug(`Updating invoice hash ${r_hash_str} as settled in invoices table`);
 
     const dateString = date.get();
     let cid = ''

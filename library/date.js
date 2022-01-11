@@ -3,7 +3,7 @@ const utc = require('dayjs/plugin/utc')
 dayjs.extend(utc)
 
 function get() {
-    return dayjs.utc().utcOffset(-5).format('YYYYMMDD'); // Chicago DST :)
+    return dayjs.utc().format('YYYYMMDD');
 }
 
 

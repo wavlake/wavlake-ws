@@ -12,7 +12,7 @@ log.setLevel(process.env.LOGLEVEL)
 const corsHost = process.env.CORS_HOST
 
 // Import routes
-const authRouter = require('./routes/auth-route')
+// const authRouter = require('./routes/auth-route')
 const invoiceRouter = require('./routes/invoice-route')
 const ownerRouter = require('./routes/owner-route')
 const trackRouter = require('./routes/track-route')

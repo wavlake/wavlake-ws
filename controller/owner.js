@@ -22,7 +22,7 @@ const handleErrorAsync = (fn) => async (req, res, next) => {
 exports.getInfo = handleErrorAsync(async (req, res, next) => {
 
   const request = { 
-    owner: req.query.userId,
+    owner: req.query.ownerId,
     serverType: req.query.serverType,
   };
 
@@ -48,7 +48,7 @@ exports.getInfo = handleErrorAsync(async (req, res, next) => {
 exports.create = handleErrorAsync(async (req, res, next) => {
 
   const request = {
-    userId: req.body.userId,
+    ownerId: req.body.ownerId,
     serverType: req.body.serverType,
     config: req.body.config
   }
@@ -58,11 +58,11 @@ exports.create = handleErrorAsync(async (req, res, next) => {
   //                macaroon: <macaroon_hex>,
   //                cert: <cert_hex> }'
 
-  log.debug(`Creating owner ${request.userId} in owners table`);
+  log.debug(`Creating owner ${request.ownerId} in owners table`);
 
   const salt = randomUUID();
   const lndRequest = { 
-    msg: Buffer.from(request.userId),
+    msg: Buffer.from(request.ownerId),
     key_loc: { "key_family": key_family, 
                "key_index": key_index },
     double_hash: false,
@@ -77,7 +77,7 @@ exports.create = handleErrorAsync(async (req, res, next) => {
         const signature = Buffer.from(response['signature']).toString('hex');
         encryption.encryptString(request.config, signature, salt)
           .then((enc) => {
-            ownerManager.createOwner( request.userId,
+            ownerManager.createOwner( request.ownerId,
                                       salt,
                                       request.serverType,
                                       enc )
@@ -90,20 +90,20 @@ exports.create = handleErrorAsync(async (req, res, next) => {
 exports.decrypt = handleErrorAsync(async (req, res, next) => {
 
   const request = {
-    userId: req.body.userId,
+    ownerId: req.body.ownerId,
   }
 
-  const ownerData = await ownerManager.getOwnerInfo(request.userId);
+  const ownerData = await ownerManager.getOwnerInfo(request.ownerId);
 
   // console.log(ownerData)
   const lndRequest = { 
-    msg: Buffer.from(request.userId),
+    msg: Buffer.from(request.ownerId),
     key_loc: { "key_family": key_family, 
                "key_index": key_index },
     double_hash: false,
     compact_sig: false
   };
-  log.debug(`Decrypting config for ${request.userId}`);
+  log.debug(`Decrypting config for ${request.ownerId}`);
 
   lnd.signer.signMessage(lndRequest, function(err, response) {
     if (err) {
