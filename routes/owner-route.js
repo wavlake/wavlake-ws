@@ -10,6 +10,7 @@ const router = express.Router()
 
 router.get('/get-info', ownerRoute.getInfo)
 router.post('/create', ownerRoute.create)
+router.post('/delete', ownerRoute.delete)
 router.post('/decrypt', ownerRoute.decrypt)
 
 // Export router

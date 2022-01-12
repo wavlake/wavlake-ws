@@ -41,7 +41,7 @@ async function checkPrice(cid) {
 }
 
 // Create new track
-async function createTrack(owner, bucket, trackId, initPlaysRemaining, msatsPerPlay) {
+async function createTrack(owner, bucket, trackId, initPlaysRemaining, msatsPerPlay, title, artist) {
     return new Promise((resolve, reject) => {
         log.debug(`Creating new track ${owner}:${trackId}`);
         return db.knex('tracks')
@@ -50,7 +50,9 @@ async function createTrack(owner, bucket, trackId, initPlaysRemaining, msatsPerP
                           cid: trackId,
                           play_count: 0,
                           plays_remaining: parseInt(initPlaysRemaining),
-                          msats_per_play: parseInt(msatsPerPlay) },  ['id'] )
+                          msats_per_play: parseInt(msatsPerPlay),
+                          title: title,
+                          artist: artist },  ['id'] )
                 .then(data => {
                     log.debug(`Created new track ${owner}:${trackId}, id: ${data[0]['id']}`);
                     resolve(data)
@@ -68,9 +70,32 @@ async function deleteTrack(owner, cid) {
         log.debug(`Deleting track ${owner}:${cid}`);
         return db.knex('tracks')
                 .where({ cid: cid })
-                .del()
+                .del([ 'owner',
+                       'bucket',
+                       'cid',
+                       'play_count',
+                       'plays_remaining',
+                       'msats_per_play',
+                       'total_msats_earned',
+                       'updated_at',
+                       'title',
+                       'artist' ])
+                .then(deleted => {
+                    log.debug(`Archiving track history for ${owner}:${cid}`);
+                    return db.knex('tracks_history')
+                        .insert({ owner: deleted[0].owner, 
+                                  bucket: deleted[0].bucket,
+                                  cid: deleted[0].cid,
+                                  play_count: deleted[0].play_count,
+                                  plays_remaining: deleted[0].plays_remaining,
+                                  msats_per_play: deleted[0].msats_per_play,
+                                  total_msats_earned: deleted[0].total_msats_earned,
+                                  updated_at: deleted[0].updated_at,
+                                  title: deleted[0].title,
+                                  artist: deleted[0].artist })
+                })
                 .then(data => {
-                    log.debug(`Deleted track ${owner}:${cid}, ${data}`);
+                    log.debug(`Deleted track ${owner}:${cid}`);
                     resolve(data)
                     })
                 .catch(err => {

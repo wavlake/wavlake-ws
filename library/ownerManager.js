@@ -24,6 +24,24 @@ async function createOwner(owner_id,
     })
 }
 
+// Delete owner
+async function deleteOwner(owner) {
+    return new Promise((resolve, reject) => {
+        log.debug(`Deleting owner ${owner}`);
+        return db.knex('owners')
+                .where({ owner_id: owner })
+                .del()
+                .then(data => {
+                    log.debug(`Deleted owner ${owner}`);
+                    resolve(data)
+                    })
+                .catch(err => {
+                    log.debug(`Error deleting owner: ${err}`);
+                    reject(err)
+                })
+        })
+}
+
 // Get salt for owner
 async function getOwnerInfo(owner_id) {
     log.debug(`Fetching owner ${owner_id} from owners table`);
@@ -43,5 +61,6 @@ async function getOwnerInfo(owner_id) {
 
 module.exports = {
     createOwner,
+    deleteOwner,
     getOwnerInfo
 }

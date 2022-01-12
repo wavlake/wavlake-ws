@@ -50,8 +50,10 @@ exports.create = handleErrorAsync(async (req, res, next) => {
   const request = {
     ownerId: req.body.ownerId,
     serverType: req.body.serverType,
-    config: req.body.config
+    config: JSON.stringify(req.body.config)
   }
+
+  // console.log(request);
 
   // LND config: '{ version: <version>,
   //                host: <host>,
@@ -85,6 +87,26 @@ exports.create = handleErrorAsync(async (req, res, next) => {
           })
       }
   })
+});
+
+exports.delete = handleErrorAsync(async (req, res, next) => {
+
+  const request = {
+    ownerId: req.body.ownerId,
+  }
+
+  // console.log(request);
+
+  // LND config: '{ version: <version>,
+  //                host: <host>,
+  //                macaroon: <macaroon_hex>,
+  //                cert: <cert_hex> }'
+
+  log.debug(`Deleting owner ${request.ownerId} from owners table`);
+
+  ownerManager.deleteOwner(request.ownerId)
+    .then((data) => res.status(200).json(data))
+
 });
 
 exports.decrypt = handleErrorAsync(async (req, res, next) => {

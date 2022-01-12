@@ -43,15 +43,17 @@ exports.check = handleErrorAsync(async (req, res, next) => {
 
 exports.create = handleErrorAsync(async (req, res, next) => {
 
-
-
   const request = {
     owner: req.body.owner,
     bucket: req.body.bucket,
     trackId: req.body.trackId, 
     initPlaysRemaining: req.body.initPlaysRemaining, 
-    msatsPerPlay: req.body.msatsPerPlay
+    msatsPerPlay: req.body.msatsPerPlay,
+    title: req.body.title,
+    artist: req.body.artist
   }
+
+  // console.log(request);
 
   log.debug(`Creating track ${request.owner}:${request.trackId} in tracks table`);
 
@@ -59,7 +61,9 @@ exports.create = handleErrorAsync(async (req, res, next) => {
                                                  request.bucket,
                                                  request.trackId,
                                                  request.initPlaysRemaining,
-                                                 request.msatsPerPlay )
+                                                 request.msatsPerPlay,
+                                                 request.artist,
+                                                 request.title )
 
   if (create) {
     const check = await trackManager.checkPlays(request.trackId)
@@ -71,6 +75,8 @@ exports.create = handleErrorAsync(async (req, res, next) => {
                               play_count: check.play_count,
                               plays_remaining: check.plays_remaining,
                               msats_per_play: check.msats_per_play,
+                              artist: check.artist,
+                              title: check.title
                               } )
       }
       else if (!check) {
