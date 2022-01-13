@@ -47,10 +47,15 @@ exports.getInfo = handleErrorAsync(async (req, res, next) => {
 
 exports.create = handleErrorAsync(async (req, res, next) => {
 
+  const tlsHex = Buffer.from(req.files.filename.data).toString('hex')
+  // console.log(tlsHex);
+
   const request = {
     ownerId: req.body.ownerId,
     serverType: req.body.serverType,
-    config: JSON.stringify(req.body.config)
+    config: JSON.stringify( { host: `${req.body.host}:${req.body.port}`,
+                              macaroon: req.body.macaroon,
+                              cert: tlsHex })
   }
 
   // console.log(request);
@@ -139,31 +144,4 @@ exports.decrypt = handleErrorAsync(async (req, res, next) => {
 })
 
 });
-
-
-// exports.delete = handleErrorAsync(async (req, res, next) => {
-
-
-
-//   const request = {
-//     owner: req.body.owner,
-//     bucket: req.body.bucket,
-//     cid: req.body.cid
-//   }
-
-//   log.debug(`Deleting track ${request.owner}:${request.cid} in tracks table`);
-
-//   storage.deleteFromStorage(request.bucket, request.owner, request.cid)
-//     .then(() => trackManager.deleteTrack(request.owner, request.cid))
-//     .then((data) => res.status(200).json(data))
-//     .catch((err) => log.error(err))
-
-//   // Delete media from IPFS
-//   // const unpin = await pinata.unpin(request.trackId)
-//   //                       // Delete track record from db
-//   //                       
-//   //                       .then((result) => res.status(200).json(result))
-//   //                       .catch((err) => log.error(err))
-
-// });
 
