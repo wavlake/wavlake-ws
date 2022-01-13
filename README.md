@@ -37,6 +37,7 @@ Custom macaroon recipe (output to hex):
 ```
 lncli bakemacaroon \
 uri:/lnrpc.Lightning/AddInvoice \
+uri:/lnrpc.Lightning/GetInfo \
 uri:/lnrpc.Lightning/LookupInvoice \
 uri:/signrpc.Signer/SignMessage \
 uri:/signrpc.Signer/VerifyMessage \
