@@ -31,7 +31,7 @@ wavlake-ws is built on the [Express](https://expressjs.com/) javascript framewor
 
 Credentials are stored as encrypted JSON objects containing the owner's LND host:port, macaroon (as hex), and TLS cert (as hex).
 
-Below are shell commands to create required the macaroon and cert.
+Below are shell commands to create the required macaroon and cert.
 
 Custom macaroon recipe (output to hex):
 ```
