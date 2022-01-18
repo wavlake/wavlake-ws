@@ -6,6 +6,7 @@ const encryption = require('../library/encryption')
 const key_family = 128
 const key_index = 3
 
+const tunnelPort = process.env.HTTP_TUNNEL_PORT;
 
 // Error handling
 // Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
@@ -31,7 +32,7 @@ exports.getInfo = handleErrorAsync(async (req, res, next) => {
   // console.log(ownerData);
   if (ownerData.host.includes("onion")) {
     // console.log("hello");
-    process.env.http_proxy = "http://127.0.0.1:9055";
+    process.env.http_proxy = `http://127.0.0.1:${tunnelPort}`;
   }
 
   let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
