@@ -24,7 +24,12 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
     const is_fee = false // TODO: Implement fee collection logic
 
     const ownerData = await lnd.initConnection(owner)
-    // console.log(ownerData);
+
+    if (ownerData.host.includes("onion")) {
+      // console.log("hello");
+      process.env.http_proxy = "http://127.0.0.1:9055";
+    }
+
     let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
     // Create invoice record excluding r_hash, get record ID
     invoiceManager.addNewInvoice(owner, value, cid, is_fee)
@@ -64,6 +69,11 @@ exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
     
     const ownerData = await lnd.initConnection(owner)
     // console.log(ownerData);
+    if (ownerData.host.includes("onion")) {
+      // console.log("hello");
+      process.env.http_proxy = "http://127.0.0.1:9055";
+    }
+
     let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
   
     ln.lookupInvoice(request, function(err, response) {
@@ -87,6 +97,12 @@ exports.monitorInvoice = handleErrorAsync(async (req, res, next) => {
 
     const ownerData = await lnd.initConnection(owner)
     // console.log(ownerData);
+
+    if (ownerData.host.includes("onion")) {
+      // console.log("hello");
+      process.env.http_proxy = "http://127.0.0.1:9055";
+    }
+
     let lninvoice = new lnd.invoicesrpc.Invoices(`${ownerData.host}`, ownerData.credentials);
     
     let call = lninvoice.subscribeSingleInvoice(request);

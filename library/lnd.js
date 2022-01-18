@@ -109,7 +109,7 @@ async function initConnection(owner) {
             // Combine credentials
             let sslCreds = grpc.credentials.createSsl(Buffer.from(j.cert, 'hex'));
             let credentials = grpc.credentials.combineChannelCredentials(sslCreds, macaroonCreds);
-            resolve({host: j.host, credentials: credentials})
+            resolve({ host: j.host, credentials: credentials })
           })
           .catch(err => reject(err))
       }

@@ -28,15 +28,21 @@ exports.getInfo = handleErrorAsync(async (req, res, next) => {
 
   const ownerData = await lnd.initConnection(request.owner)
   // console.log(ownerData);
+  // console.log(ownerData);
+  if (ownerData.host.includes("onion")) {
+    // console.log("hello");
+    process.env.http_proxy = "http://127.0.0.1:9055";
+  }
+
   let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
-  // Create invoice record excluding r_hash, get record ID
+
   ln.getInfo({}, function(err, response) {
     if (err) {
+      // console.log(err);
       res.status(500).json(err)
     }
     else {
-      // Update invoice with r_hash
-      const lndResponse = response;
+      // console.log(response);
       res.status(200).json(response);
     }   
   })
