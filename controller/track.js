@@ -62,8 +62,8 @@ exports.create = handleErrorAsync(async (req, res, next) => {
                                                  request.trackId,
                                                  request.initPlaysRemaining,
                                                  request.msatsPerPlay,
-                                                 request.artist,
-                                                 request.title )
+                                                 request.title,
+                                                 request.artist )
 
   if (create) {
     const check = await trackManager.checkPlays(request.trackId)
