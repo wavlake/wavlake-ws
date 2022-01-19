@@ -2,6 +2,9 @@ const lnd = require('../library/lnd')
 const log = require('loglevel')
 const invoiceManager = require('../library/invoiceManager')
 
+const tunnelPort = process.env.HTTP_TUNNEL_PORT;
+const tunnelHost = process.env.HTTP_TUNNEL_HOST;
+
 // Error handling
 // Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
 const handleErrorAsync = (fn) => async (req, res, next) => {
@@ -24,7 +27,12 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
     const is_fee = false // TODO: Implement fee collection logic
 
     const ownerData = await lnd.initConnection(owner)
-    // console.log(ownerData);
+
+    if (ownerData.host.includes("onion")) {
+      // console.log("hello");
+      process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
+    }
+
     let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
     // Create invoice record excluding r_hash, get record ID
     invoiceManager.addNewInvoice(owner, value, cid, is_fee)
@@ -64,6 +72,11 @@ exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
     
     const ownerData = await lnd.initConnection(owner)
     // console.log(ownerData);
+    if (ownerData.host.includes("onion")) {
+      // console.log("hello");
+      process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
+    }
+
     let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
   
     ln.lookupInvoice(request, function(err, response) {
@@ -87,6 +100,12 @@ exports.monitorInvoice = handleErrorAsync(async (req, res, next) => {
 
     const ownerData = await lnd.initConnection(owner)
     // console.log(ownerData);
+
+    if (ownerData.host.includes("onion")) {
+      // console.log("hello");
+      process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
+    }
+
     let lninvoice = new lnd.invoicesrpc.Invoices(`${ownerData.host}`, ownerData.credentials);
     
     let call = lninvoice.subscribeSingleInvoice(request);

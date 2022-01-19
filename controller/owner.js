@@ -7,6 +7,10 @@ const key_family = 128
 const key_index = 3
 
 
+const tunnelPort = process.env.HTTP_TUNNEL_PORT;
+const tunnelHost = process.env.HTTP_TUNNEL_HOST;
+
+
 // Error handling
 // Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
 const handleErrorAsync = (fn) => async (req, res, next) => {
@@ -28,15 +32,21 @@ exports.getInfo = handleErrorAsync(async (req, res, next) => {
 
   const ownerData = await lnd.initConnection(request.owner)
   // console.log(ownerData);
+  // console.log(ownerData);
+  if (ownerData.host.includes("onion")) {
+    // console.log("hello");
+    process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
+  }
+
   let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
-  // Create invoice record excluding r_hash, get record ID
+
   ln.getInfo({}, function(err, response) {
     if (err) {
+      // console.log(err);
       res.status(500).json(err)
     }
     else {
-      // Update invoice with r_hash
-      const lndResponse = response;
+      // console.log(response);
       res.status(200).json(response);
     }   
   })
