@@ -1,8 +1,6 @@
 const log = require('loglevel')
-const{ randomUUID } = require('crypto')
-const lnd = require('../library/lnd')
 const listenerManager = require('../library/listenerManager')
-
+const { db } = require('../library/fstore')
 
 // Error handling
 // Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
@@ -55,6 +53,14 @@ exports.create = handleErrorAsync(async (req, res, next) => {
   }
 
   log.debug(`Creating listener ${request.listenerId} in listeners table`);
+
+  const data = {
+    name: 'Los Angeles',
+    state: 'CA',
+    country: 'USA'
+  };
+
+  const resp = await db.collection('listeners').doc(request.listenerId).set(data);
 
   listenerManager.createListener(request.listenerId)
     .then((data) => res.status(200).json(data))
