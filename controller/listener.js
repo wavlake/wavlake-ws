@@ -55,9 +55,8 @@ exports.create = handleErrorAsync(async (req, res, next) => {
   log.debug(`Creating listener ${request.listenerId} in listeners table`);
 
   const data = {
-    name: 'Los Angeles',
-    state: 'CA',
-    country: 'USA'
+    balanceMsats: 0,
+    owner: request.listenerId
   };
 
   const resp = await db.collection('listeners').doc(request.listenerId).set(data);
