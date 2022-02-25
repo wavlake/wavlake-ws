@@ -27,8 +27,7 @@ async function addHash(r_hash_str,
 // Add new invoice to invoice table
 async function addNewInvoice(owner,
                              value,
-                             cid,
-                             is_fee) {
+                             cid) {
     log.debug(`Adding new invoice for ${cid} to invoices table`);
     return db.knex('invoices')
             .insert( { owner: owner,
@@ -36,8 +35,7 @@ async function addNewInvoice(owner,
                        price_msat: value * 1000,
                        settled: false,
                        cid: cid,
-                       recharged: false,
-                       is_fee: is_fee }, ['id'] )
+                       recharged: false }, ['id'] )
             .then(data => {
                 // console.log(data);
                 return data[0]['id']

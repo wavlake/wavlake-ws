@@ -2,6 +2,7 @@ const log = require('loglevel')
 const trackManager = require('../library/trackManager')
 const invoiceManager = require('../library/invoiceManager')
 const storage = require('../library/storage')
+const { db } = require('../library/fstore')
 
 // Error handling
 // Ref: https://stackoverflow.com/questions/43356705/node-js-express-error-handling-middleware-with-router
@@ -116,22 +117,28 @@ exports.delete = handleErrorAsync(async (req, res, next) => {
 
 exports.mark = handleErrorAsync(async (req, res, next) => {
 
-
-
   const request = { 
     cid: req.body.cid,
-    count: req.body.count
+    count: req.body.count,
+    uid: req.body.uid
   };
 
   const check = await trackManager.checkPlays(request.cid)
 
   if (request.count <= check.plays_remaining) {
-    const add = await trackManager.markPlay(request.cid, request.count)
+    const add = await trackManager.markPlay(request.cid, request.count, request.uid)
     // console.log(add)
     if (add === 1) {
-      
       // res.status(200).json( `Updated play count and plays remaining by ${request.count} for ${request.cid}` )
       const check = await trackManager.checkPlays(request.cid)
+
+      const fstoreUpdate = await db.collection('tracks')
+                                   .doc(request.cid)
+                                   .set({
+                                     plays: check.play_count,
+                                     playsRemaining: check.plays_remaining,
+                                     totalMsatsEarned: check.total_msats_earned
+                                   }, { merge: true });
 
       if (check) {
         res.status(200).json( { 
@@ -198,6 +205,14 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
       const check = await trackManager.checkPlays(cid)
 
+      const fstoreUpdate = await db.collection('tracks')
+                                    .doc(cid)
+                                    .set({
+                                      plays: check.play_count,
+                                      playsRemaining: check.plays_remaining,
+                                      totalMsatsEarned: check.total_msats_earned
+                                    }, { merge: true });
+
       if (check) {
         res.status(200).json( { 
                                 cid: check.cid,
@@ -226,6 +241,14 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
     if (add) {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
       const check = await trackManager.checkPlays(cid)
+
+      const fstoreUpdate = await db.collection('tracks')
+                                    .doc(cid)
+                                    .set({
+                                      plays: check.play_count,
+                                      playsRemaining: check.plays_remaining,
+                                      totalMsatsEarned: check.total_msats_earned
+                                    }, { merge: true });
 
       if (check) {
         res.status(200).json( { 
