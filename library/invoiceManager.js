@@ -24,6 +24,25 @@ async function addHash(r_hash_str,
     })
 }
 
+// Add new invoice to listener invoice table
+async function addFundingInvoice(value,
+                                 uid) {
+    log.debug(`Adding new invoice for user: ${uid} to listener invoices table`);
+    return db.knex('listener_invoices')
+        .insert( { r_hash_str: randomUUID(),
+                   price_msat: value * 1000,
+                   settled: false,
+                   listener_id: uid,
+                   recharged: false }, ['id'] )
+    .then(data => {
+        // console.log(data);
+        return data[0]['id']
+    })
+    .catch(err => {
+        return err
+    })
+}
+
 // Add new invoice to invoice table
 async function addNewInvoice(owner,
                              value,
@@ -149,6 +168,21 @@ async function updateInvoiceHash(invoiceId,
         })
 }
 
+// Update invoice hash in invoice table
+async function updateListenerInvoiceHash(invoiceId,
+                                         r_hash_str) {
+    log.debug(`Updating listener invoice id: ${invoiceId} in listener invoices table`);
+    return db.knex('listener_invoices')
+             .where({ id: parseInt(invoiceId) })
+             .update( { r_hash_str: r_hash_str, updated_at: db.knex.fn.now() } )
+             .then(data => {
+                    return data
+             })
+    .catch(err => {
+                    return err
+             })
+}
+
 // Update invoice settlement status
 async function updateInvoiceSettled(r_hash_str) {
     log.debug(`Updating invoice hash ${r_hash_str} as settled in invoices table`);
@@ -205,10 +239,12 @@ async function updateInvoiceSettled(r_hash_str) {
 module.exports = {
     addHash,
     addNewInvoice,
+    addFundingInvoice,
     checkHash,
     checkStatus,
     getCidFromInvoice,
     markRecharged,
     updateInvoiceHash,
+    updateListenerInvoiceHash,
     updateInvoiceSettled
 }

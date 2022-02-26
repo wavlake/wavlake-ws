@@ -1,6 +1,15 @@
+const fs = require("fs");
+const grpc = require('grpc')
 const lnd = require('../library/lnd')
 const log = require('loglevel')
 const invoiceManager = require('../library/invoiceManager')
+
+const config = {
+  macaroon: process.env.MACAROON_FUNDING,
+  tls: process.env.TLS_PATH_FUNDING,
+  lnd_host: process.env.LND_HOST_FUNDING,
+  lnd_port: process.env.LND_PORT_FUNDING
+}
 
 const tunnelPort = process.env.HTTP_TUNNEL_PORT;
 const tunnelHost = process.env.HTTP_TUNNEL_HOST;
@@ -17,6 +26,54 @@ const handleErrorAsync = (fn) => async (req, res, next) => {
 
 
 // METHODS
+exports.addFundingInvoice = handleErrorAsync(async (req, res, next) => {
+
+  const uid = req.body['uid']
+  const value = req.body['value']
+
+  // Generate credentials
+  const metadata = new grpc.Metadata()
+  metadata.add('macaroon', config.macaroon)
+  const macaroonCreds = grpc.credentials.createFromMetadataGenerator((_args, callback) => {
+    callback(null, metadata);
+  });
+
+  // Combine credentials
+  let lndCert = fs.readFileSync(config.tls);
+  let sslCreds = grpc.credentials.createSsl(lndCert);
+  let credentials = grpc.credentials.combineChannelCredentials(sslCreds, macaroonCreds);
+
+  let ln = new lnd.lnrpc.Lightning(`${config.lnd_host}:${config.lnd_port}`, credentials);
+
+  // Create invoice record excluding r_hash, get record ID
+  invoiceManager.addFundingInvoice(value, uid)
+    .then((data) => {
+      const invoiceId = data;
+      const request = { 
+        value: value,
+        memo: `Wavlake top-up (ID: ${data})`,
+        expiry: 3600
+      };
+          // Generate invoice
+      ln.addInvoice(request, function(err, response) {
+        if (err) {
+          res.json(err)
+        }
+        else {
+          // Update invoice with r_hash
+          const lndResponse = response;
+          const r_hash_str = Buffer.from(response.r_hash).toString('hex')
+          log.debug(`Generated invoice, r_hash: ${r_hash_str}`);
+          invoiceManager.updateListenerInvoiceHash(invoiceId, r_hash_str)
+            .then(() => res.status(200).json(lndResponse))
+          // res.json(response);
+        }
+        
+    })
+  })
+})
+
+
 exports.addInvoice = handleErrorAsync(async (req, res, next) => {
 
     const owner = req.body['owner']
