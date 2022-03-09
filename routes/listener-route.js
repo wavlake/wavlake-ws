@@ -10,6 +10,7 @@ const router = express.Router()
 
 // router.get('/get-info', listenerRoute.getInfo)
 router.post('/create', listenerRoute.create)
+router.post('/recharge-balance', listenerRoute.rechargeBalance)
 // router.post('/delete', listener.delete)
 // router.post('/decrypt', listener.decrypt)
 

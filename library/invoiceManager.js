@@ -3,6 +3,7 @@ const lnd = require('./lnd')
 const log = require('loglevel')
 const date = require('./date')
 const{ randomUUID } = require('crypto')
+const { getuid } = require('process')
 
 // Add new hash to invoice table
 async function addHash(r_hash_str,
@@ -77,6 +78,19 @@ async function checkHash(r_hash_str) {
     })
 }
 
+// Check hash in invoice table
+async function checkListenerHash(r_hash_str) {
+    log.debug(`Checking invoice hash ${r_hash_str} exists in listener_invoices table`);
+    return db.knex('listener_invoices')
+            .where('r_hash_str', '=', r_hash_str)
+            .then(data => {
+                return data
+                })
+            .catch(err => {
+                return err
+    })
+}
+
 
 // // Check invoice status in lnd
 async function checkStatus(r_hash_str) {
@@ -95,6 +109,29 @@ async function checkStatus(r_hash_str) {
     log.debug(`Checking status of ${r_hash_str} invoice in ${owner} lnd db`);
     return new Promise((resolve, reject) => {
         ln.lookupInvoice(request, (err, response) => {
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve(response);
+            }
+        })
+    })
+}
+
+// // Check invoice status in lnd
+async function checkListenerStatus(r_hash_str, funding_ln) {
+
+    const listener = await getUidFromInvoice(r_hash_str);
+
+    // Build request for lnd call
+    const request = { 
+        r_hash: Buffer.from(r_hash_str, 'hex'),
+      };
+
+    log.debug(`Checking status of ${r_hash_str} listener invoice for ${listener} in lnd db`);
+    return new Promise((resolve, reject) => {
+        funding_ln.lookupInvoice(request, (err, response) => {
             if (err) {
                 reject(err);
             }
@@ -137,7 +174,21 @@ async function getOwnerFromInvoice(r_hash_str) {
             })
 }
 
-
+// Get uid from invoice hash
+async function getUidFromInvoice(r_hash_str) {
+    log.debug(`Getting uid for ${r_hash_str} in listener invoices table`);
+    return new Promise((resolve, reject) => {
+        return db.knex('listener_invoices')
+                .where({ r_hash_str: r_hash_str })
+                .first('listener_id')
+                .then(data => {
+                    resolve(data['listener_id'])
+                })
+                .catch(err => {
+                        reject(err)
+                })
+            })
+}
 
 // Add new hash to invoice table
 async function markRecharged(r_hash_str) {
@@ -236,15 +287,59 @@ async function updateInvoiceSettled(r_hash_str) {
         //     })
 }
 
-module.exports = {
+// Update invoice settlement status
+async function updateListenerInvoiceSettled(r_hash_str, uid) {
+    log.debug(`Updating invoice hash ${r_hash_str} as settled in listener invoices table`);
+
+    const dateString = date.get();
+
+    return db.knex.transaction((trx) => {
+        return db.knex('listener_invoices')
+                 .where({ r_hash_str: r_hash_str })
+                 .update( { settled: true, 
+                            recharged: true, 
+                            updated_at: db.knex.fn.now() }, 
+                         ['listener_id', 'price_msat'] )
+                 .transacting(trx)
+        .then((data) => {
+            uid = data[0]['listener_id']
+            value = data[0]['price_msat']
+            log.debug(`Adding value of ${value} msats to ${uid} in listeners table`);
+                return db.knex('listeners')
+                         .where({ listener_id: uid })
+                         .increment({ balance_msats: value} )
+                         .update({
+                            updated_at: db.knex.fn.now()
+                         },
+                         ['listener_id', 'balance_msats'])
+                         .transacting(trx)
+        })
+        .then(() => trx.commit)
+        .catch(trx.rollback)
+        .then(() => { return db.knex('listeners')
+                                .where('listener_id', '=', uid)
+                                .then(data => {
+                                    return data
+                                    })
+                                .catch(err => {
+                                    return err
+                        })})
+    })
+}
+
+module.exports = { 
     addHash,
     addNewInvoice,
     addFundingInvoice,
     checkHash,
+    checkListenerHash,
+    checkListenerStatus,
     checkStatus,
     getCidFromInvoice,
+    getUidFromInvoice,
     markRecharged,
     updateInvoiceHash,
     updateListenerInvoiceHash,
+    updateListenerInvoiceSettled,
     updateInvoiceSettled
 }

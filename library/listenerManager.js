@@ -18,6 +18,30 @@ async function createListener(listener_id) {
     })
 }
 
+// Recharge balance
+async function rechargeBalance(r_hash_str, uid) {
+    log.debug(`Marking invoice hash  ${r_hash_str} as recharged in listener_invoices table`);
+    return db.knex.transaction((trx) => {
+        return db.knex('listener_invoices')
+                 .where({ r_hash_str: r_hash_str })
+                 .update( { recharged: true } )
+            .then((data) => {
+                value = data[0]['price_msat']
+                log.debug(`Adding value of ${value} msats to ${uid} in listeners table`);
+                return db.knex('listeners')
+                         .where({ uid: uid })
+                         .increment({ balance_msats: value} )
+                         .update({
+                          updated_at: db.knex.fn.now()
+                         })
+                         .transacting(trx)
+        })
+        .then(() => trx.commit)
+        .then(() => { return 1 })
+        .catch(trx.rollback)
+    })
+}
+
 // // Delete owner
 // async function deleteOwner(owner) {
 //     return new Promise((resolve, reject) => {

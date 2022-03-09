@@ -112,9 +112,10 @@ async function markPlay(cid, count, uid) {
 
         const dateString = date.get();
 
-        // If listener is logged in, do not decrement plays_remaining field
-        const decrementCount = uid ? 0 : 1;
+        const decrementCount = 1;
         // TODO: If listener is logged in, mark play for listener and decrement listener's balance
+        // If listener is logged in, do not decrement plays_remaining field
+        // const decrementCount = uid ? 0 : 1;
 
         return db.knex.transaction((trx) => {
             return db.knex('tracks')
