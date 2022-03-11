@@ -3,6 +3,7 @@ const grpc = require('grpc')
 const lnd = require('../library/lnd')
 const log = require('loglevel')
 const invoiceManager = require('../library/invoiceManager')
+const ownerManager = require('../library/ownerManager')
 
 const config = {
   macaroon: process.env.MACAROON_FUNDING,
@@ -82,16 +83,31 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
     const cid = req.body['cid']
     const value = req.body['value']
 
-    const ownerData = await lnd.initConnection(owner)
+    const ownerType = await ownerManager.getOwnerType(owner);
+    
+    let ownerData;
+    let ln;
+    let forward;
+    // LND
+    if (ownerType === 'lnd') {
+      forward = false;
+      ownerData = await lnd.initConnection(owner)
 
-    if (ownerData.host.includes("onion")) {
-      // console.log("hello");
-      process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
+      if (ownerData.host.includes("onion")) {
+        // console.log("hello");
+        process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
+      }
+  
+      ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
+    }
+    // Lightning Address
+    else if (ownerType === 'lnaddress') {
+      forward = true;
+      ln = lnd.lnClient;
     }
 
-    let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
     // Create invoice record excluding r_hash, get record ID
-    invoiceManager.addNewInvoice(owner, value, cid)
+    invoiceManager.addNewInvoice(owner, value, cid, forward)
       .then((data) => {
         const invoiceId = data;
         const request = { 
@@ -125,15 +141,25 @@ exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
     const request = { 
       r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
     };
-    
-    const ownerData = await lnd.initConnection(owner)
-    // console.log(ownerData);
-    if (ownerData.host.includes("onion")) {
-      // console.log("hello");
-      process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
-    }
 
-    let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
+    const ownerType = await ownerManager.getOwnerType(owner);
+    
+    let ln;
+    // LND
+    if (ownerType === 'lnd') {
+      ownerData = await lnd.initConnection(owner)
+
+      if (ownerData.host.includes("onion")) {
+        // console.log("hello");
+        process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
+      }
+  
+      ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
+    }
+    // Lightning Address
+    else if (ownerType === 'lnaddress') {
+      ln = lnd.lnClient;
+    }
   
     ln.lookupInvoice(request, function(err, response) {
         if (err) {
@@ -154,24 +180,37 @@ exports.monitorInvoice = handleErrorAsync(async (req, res, next) => {
       r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
     };
 
-    const ownerData = await lnd.initConnection(owner)
-    // console.log(ownerData);
+    const ownerType = await ownerManager.getOwnerType(owner);
 
-    if (ownerData.host.includes("onion")) {
-      // console.log("hello");
-      process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
+    let lninvoice;
+    // LND
+    if (ownerType === 'lnd') {
+      const ownerData = await lnd.initConnection(owner)
+      // console.log(ownerData);
+
+      if (ownerData.host.includes("onion")) {
+        // console.log("hello");
+        process.env.http_proxy = `http://${tunnelHost}:${tunnelPort}`;
+      }
+
+      lninvoice = new lnd.invoicesrpc.Invoices(`${ownerData.host}`, ownerData.credentials);
+      
+
+    }
+    // Lightning Address
+    else if (ownerType === 'lnaddress') {
+      lninvoice = lnd.invoicesClient
     }
 
-    let lninvoice = new lnd.invoicesrpc.Invoices(`${ownerData.host}`, ownerData.credentials);
-    
     let call = lninvoice.subscribeSingleInvoice(request);
     call.on('data', function(response) {
         // console.log(response)
         // A response was received from the server.
         if (response.settled === false) {
-            console.log('awaiting payment')
+          console.log('awaiting payment')
         }
         else if (response.settled === true) {
+          ////////////////////////// TODO: If ownerType === 'lnaddress' forward the payment
             res.json(response)
         }
     });

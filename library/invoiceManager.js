@@ -2,6 +2,7 @@ const db = require('./db')
 const lnd = require('./lnd')
 const log = require('loglevel')
 const date = require('./date')
+const ownerManager = require('./ownerManager')
 const{ randomUUID } = require('crypto')
 const { getuid } = require('process')
 
@@ -47,7 +48,8 @@ async function addFundingInvoice(value,
 // Add new invoice to invoice table
 async function addNewInvoice(owner,
                              value,
-                             cid) {
+                             cid,
+                             forward) {
     log.debug(`Adding new invoice for ${cid} to invoices table`);
     return db.knex('invoices')
             .insert( { owner: owner,
@@ -55,7 +57,8 @@ async function addNewInvoice(owner,
                        price_msat: value * 1000,
                        settled: false,
                        cid: cid,
-                       recharged: false }, ['id'] )
+                       recharged: false,
+                       forward: forward }, ['id'] )
             .then(data => {
                 // console.log(data);
                 return data[0]['id']
@@ -96,10 +99,20 @@ async function checkListenerHash(r_hash_str) {
 async function checkStatus(r_hash_str) {
 
     const owner = await getOwnerFromInvoice(r_hash_str);
+    const ownerType = await ownerManager.getOwnerType(owner);
 
-    const ownerData = await lnd.initConnection(owner)
-    // console.log(ownerData);
-    let ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
+    let ln;
+    // LND
+    if (ownerType === 'lnd') {
+        const ownerData = await lnd.initConnection(owner)
+        // console.log(ownerData);
+        ln = new lnd.lnrpc.Lightning(`${ownerData.host}`, ownerData.credentials);
+    }
+    // Lightning Address
+    else if (ownerType === 'lnaddress') {
+        ln = lnd.lnClient;
+    }
+
 
     // Build request for lnd call
     const request = { 

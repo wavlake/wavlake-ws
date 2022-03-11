@@ -60,11 +60,11 @@ let credentials = grpc.credentials.combineChannelCredentials(sslCreds, macaroonC
 
 // Create lightning interface
 const lnrpc = grpc.loadPackageDefinition(packageDefinition).lnrpc;
-// let client = new lnrpc.Lightning(`${config.lnd_host}:${config.lnd_port}`, credentials);
+const lnClient = new lnrpc.Lightning(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
 // // Create invoices interface
 const invoicesrpc = grpc.loadPackageDefinition(packageDefinition).invoicesrpc;
-// let invoices = new invoicesrpc.Invoices(`${config.lnd_host}:${config.lnd_port}`, credentials);
+let invoicesClient = new invoicesrpc.Invoices(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
 // // Create signer interface
 const signrpc = grpc.loadPackageDefinition(packageDefinition).signrpc;
@@ -146,8 +146,10 @@ async function initConnection(owner) {
 module.exports = {
     // client,
     // checkStatus,
+    invoicesClient,
     invoicesrpc,
     initConnection,
+    lnClient,
     lnrpc,
     signer,
     // walletKit

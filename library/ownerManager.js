@@ -42,6 +42,22 @@ async function deleteOwner(owner) {
         })
 }
 
+// Get address
+async function getOwnerAddress(owner_id) {
+    log.debug(`Fetching owner ${owner_id} address from owners table`);
+    return db.knex('owners')
+        .where( { owner_id: owner_id } )
+        .first('config')
+        .then(data => {
+            // console.log(data);
+            return data;
+        })
+        .catch(err => {
+            console.log(err);
+            return err
+    })
+}
+
 // Get salt for owner
 async function getOwnerInfo(owner_id) {
     log.debug(`Fetching owner ${owner_id} from owners table`);
@@ -58,9 +74,26 @@ async function getOwnerInfo(owner_id) {
     })
 }
 
+// Get owner type
+async function getOwnerType(owner_id) {
+    log.debug(`Fetching owner ${owner_id} type from owners table`);
+    return db.knex('owners')
+        .where( { owner_id: owner_id } )
+        .first('server_type')
+        .then(data => {
+            return data.server_type;
+        })
+        .catch(err => {
+            console.log(err);
+            return err
+    })
+}
+
 
 module.exports = {
     createOwner,
     deleteOwner,
-    getOwnerInfo
+    getOwnerAddress,
+    getOwnerInfo,
+    getOwnerType
 }
