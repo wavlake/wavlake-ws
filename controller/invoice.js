@@ -137,9 +137,10 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
 exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
 
     const owner = req.body.owner;
+    const r_hash_str = req.body.r_hash_str;
 
     const request = { 
-      r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
+      r_hash: Buffer.from(req.body.r_hash_str, 'hex'),
     };
 
     const ownerType = await ownerManager.getOwnerType(owner);
@@ -165,6 +166,11 @@ exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
         if (err) {
           res.json(err)
         }
+        else if (response.settled === true) {
+          invoiceManager.updateInvoiceSettled(r_hash_str);
+          ////////////////////////// TODO: If ownerType === 'lnaddress' forward the payment
+          res.json(response)
+        }
         else {
           res.json(response);
         }
@@ -175,9 +181,10 @@ exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
 exports.monitorInvoice = handleErrorAsync(async (req, res, next) => {
 
     const owner = req.body.owner;
+    const r_hash_str = req.body.r_hash_str;
 
     const request = { 
-      r_hash: Buffer.from(req.body['r_hash_str'], 'hex'),
+      r_hash: Buffer.from(req.body.r_hash_str, 'hex'),
     };
 
     const ownerType = await ownerManager.getOwnerType(owner);
@@ -199,7 +206,7 @@ exports.monitorInvoice = handleErrorAsync(async (req, res, next) => {
     }
     // Lightning Address
     else if (ownerType === 'lnaddress') {
-      lninvoice = lnd.invoicesClient
+      lninvoice = lnd.invoicesClient;
     }
 
     let call = lninvoice.subscribeSingleInvoice(request);
@@ -210,8 +217,13 @@ exports.monitorInvoice = handleErrorAsync(async (req, res, next) => {
           console.log('awaiting payment')
         }
         else if (response.settled === true) {
+          const update = invoiceManager.updateInvoiceSettled(r_hash_str);
           ////////////////////////// TODO: If ownerType === 'lnaddress' forward the payment
-            res.json(response)
+          if (update && ownerType === 'lnaddress') {
+            invoiceManager.forwardTip(owner, r_hash_str);
+          }
+
+          res.json(response)
         }
     });
     call.on('status', function(status) {

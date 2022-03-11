@@ -35,6 +35,7 @@ const loaderOptions = {
 };
 const packageDefinition = protoLoader.loadSync([ path.join(__dirname, 'lightning.proto'),
                                                  path.join(__dirname, 'invoices.proto'),
+                                                 path.join(__dirname, 'router.proto'),
                                                  path.join(__dirname, 'signer.proto'),
                                                  path.join(__dirname, 'walletkit.proto')
                                                 ], 
@@ -65,6 +66,10 @@ const lnClient = new lnrpc.Lightning(`${config.lnd_host}:${config.lnd_port}`, cr
 // // Create invoices interface
 const invoicesrpc = grpc.loadPackageDefinition(packageDefinition).invoicesrpc;
 let invoicesClient = new invoicesrpc.Invoices(`${config.lnd_host}:${config.lnd_port}`, credentials);
+
+// // Create invoices interface
+const routerrpc = grpc.loadPackageDefinition(packageDefinition).routerrpc;
+let router = new routerrpc.Router(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
 // // Create signer interface
 const signrpc = grpc.loadPackageDefinition(packageDefinition).signrpc;
@@ -151,6 +156,7 @@ module.exports = {
     initConnection,
     lnClient,
     lnrpc,
+    router,
     signer,
     // walletKit
 }

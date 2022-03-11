@@ -7,13 +7,13 @@ async function init(address) {
     const domain = a[1]
     // console.log(domain);
     const url = `http://${domain}/.well-known/lnurlp/${username}`;
-    console.log(url);
+    // console.log(url);
 
     return new Promise((resolve, reject) => {
         axios.get(url)
             .then(function (response) {
                 // handle success
-                console.log(response.data.callback);
+                // console.log(response.data.callback);
                 if (response.data.tag === 'payRequest') {
                     resolve(response.data.callback)
                 }

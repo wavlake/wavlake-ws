@@ -4,6 +4,8 @@ exports.up = function(knex) {
         table.boolean('forward').notNullable().defaultTo(false);
         table.string('preimage', 128);
         table.integer('fee_msat').unsigned();
+        table.integer('tx_fee_msat').unsigned();
+        table.string('forward_failure', 128);
      });
 };
 
@@ -13,5 +15,7 @@ exports.down = function(knex) {
         table.dropColumn('forward');
         table.dropColumn('preimage');
         table.dropColumn('fee_msat');
+        table.dropColumn('tx_fee_msat');
+        table.dropColumn('forward_failure');
      });
 };

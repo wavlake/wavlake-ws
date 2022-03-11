@@ -177,6 +177,9 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
   if (record.length === 1 && record[0].recharged) {
     return res.status(500).json( 'Invoice already has been used to recharge' )
   }
+  else if (record.length === 0) {
+    return res.status(500).json( 'Invoice does not exist' ) 
+  }
 
   // Check if new invoice has been settled, return if false
   const status = await invoiceManager.checkStatus(request.r_hash_str)
@@ -184,23 +187,15 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
   if (!status.settled) {
     return res.status(500).json( 'Invoice not settled' )
   }
-  else if (status.settled) {
-    await invoiceManager.updateInvoiceSettled(request.r_hash_str);
-  }
 
   // Set play increment according to payment amount and track's sats_per_play value
   const cost = await trackManager.checkPrice(cid)
-  const increment = (Number(status.value_msat) / cost['msats_per_play'])
-  // console.log(increment)
+  const increment = Math.floor(Number(status.value_msat) / cost['msats_per_play'])
 
-  // Write new invoice r_hash_str value to db if it has been settled
-  if (status.settled && record.length === 0) {
-    const add = await trackManager.rechargePlays(cid, increment)
-                                    .then(() => {
-                                      return invoiceManager.markRecharged(request.r_hash_str)
-                                    })
-                                    .catch((err) => log.error(err))
-  
+  // Only recharge track if r_hash_str value already exists in db but recharged is false
+  if (status.settled && !record[0].recharged) {
+    const add = await trackManager.rechargePlays(cid, increment, request.r_hash_str);
+
     if (add) {
       // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
       const check = await trackManager.checkPlays(cid)
@@ -230,52 +225,13 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
       res.status(500).json( 'Database error' )
     }
   }
-
-  // Only recharge track if r_hash_str value already exists in db but recharged is false
-  else if (status.settled && !record[0].recharged) {
-    const add = await trackManager.rechargePlays(cid, increment)
-                                  .then(() => {
-                                    return invoiceManager.markRecharged(request.r_hash_str)
-                                  })
-
-    if (add) {
-      // res.status(200).json( `Recharged plays for ${status.memo} by ${increment}` )
-      const check = await trackManager.checkPlays(cid)
-
-      const fstoreUpdate = await db.collection('tracks')
-                                    .doc(cid)
-                                    .set({
-                                      plays: check.play_count,
-                                      playsRemaining: check.plays_remaining,
-                                      totalMsatsEarned: check.total_msats_earned
-                                    }, { merge: true });
-
-      if (check) {
-        res.status(200).json( { 
-                                cid: check.cid,
-                                play_count: check.play_count,
-                                plays_remaining: check.plays_remaining,
-                                msats_per_play: check.msats_per_play,
-                                total_msats_earned: check.total_msats_earned
-                               } )
-      }
-      else if (!check) {
-        res.status(500).json( { error: 'Database error, no such track' } )
-      }
-    }
-    else {
-      res.status(500).json( 'Database error' )
-    }
+  else {
+    res.status(500).json( 'Unknown error' )
   }
   
 });
 
 exports.upload = handleErrorAsync(async (req, res, next) => {
-
-
-
-  // console.log(req.body)
-  // log.debug(`Locating files: ${JSON.stringify(req.files)}`);
 
   const fileObj = req.files.filename;
 

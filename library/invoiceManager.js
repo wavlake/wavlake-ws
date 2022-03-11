@@ -3,8 +3,11 @@ const lnd = require('./lnd')
 const log = require('loglevel')
 const date = require('./date')
 const ownerManager = require('./ownerManager')
+const address = require('../library/address')
 const{ randomUUID } = require('crypto')
 const { getuid } = require('process')
+
+const playPrice = parseInt(process.env.PLAY_PRICE);
 
 // Add new hash to invoice table
 async function addHash(r_hash_str,
@@ -155,6 +158,104 @@ async function checkListenerStatus(r_hash_str, funding_ln) {
     })
 }
 
+// Mark forward failure for lightning address owner
+async function flagForwardFailure(r_hash_str, reason) {
+    log.debug(`Payment Failed: ${reason}`)
+    return db.knex('invoices')
+            .where({ r_hash_str: r_hash_str })
+            .update( { forward_failure: reason,
+                        updated_at: db.knex.fn.now()
+                        } )
+            .then(data => {
+                return data;
+            })
+            .catch(err => {
+                log.debug(err)
+            })
+        }
+
+// Forward tip for lightning address owner
+async function forwardTip(owner, r_hash_str) {
+    log.debug(`Forwarding tip to owner ${owner} based on ${r_hash_str} status`);
+    
+    let ownerAddress;
+    const url = await ownerManager.getOwnerAddress(owner)
+        .then((result) => { ownerAddress = result.config; 
+                            return address.init(result.config) })
+        .catch(err => {
+            console.log(err)
+        })
+    
+    let amount;
+    let fee;
+    return db.knex('invoices')
+            .where({ r_hash_str: r_hash_str, forward: true })
+            .first([ 'price_msat', 'settled' ])
+            .then((result) => { 
+                fee = (result.price_msat / playPrice) * 1000;
+                amount = result.price_msat - fee;
+                address.requestInvoice(url, amount)
+                    .then((pr) => {
+                    // console.log(pr);
+                    lnd.lnClient.decodePayReq({pay_req: pr}, function(err, response) {
+                        if (err) {
+                          log.debug(`Error decoding payment request from lnaddress ${ownerAddress}`);
+                          log.debug(err);
+                          flagForwardFailure(r_hash_str, 'Invalid or missing payment request')
+                        }
+                        else {
+                        // console.log(response);
+                        // console.log(amount);
+                            if (parseInt(response.num_msat) == amount) {
+                                const request = { payment_request: pr, 
+                                                    fee_limit_msat: (amount * 0.001),
+                                                    timeout_seconds: 30 }
+                                let call = lnd.router.sendPaymentV2(request)
+                                call.on('data', function(response) {
+                                    // A response was received from the server.
+                                    if (response.status == "SUCCEEDED") {
+                                        log.debug(`Marking invoice hash ${r_hash_str} as forwarded`);
+                                        return db.knex('invoices')
+                                            .where({ r_hash_str: r_hash_str })
+                                            .update( { preimage: response.payment_preimage,
+                                                        fee_msat: fee,
+                                                        tx_fee_msat: response.fee_msat,
+                                                        updated_at: db.knex.fn.now()
+                                                        } )
+                                            .then(data => {
+                                                return data;
+                                            })
+                                            .catch(err => {
+                                                console.log(err)
+                                            })
+                                  }
+                                    else if (response.status == "FAILED") {
+                                        flagForwardFailure(r_hash_str, response.failure_reason)
+                                    }
+                            // resolve(response);
+                            });
+                            call.on('status', function(status) {
+                                // The current status of the stream.
+                                // console.log("STATUS:");
+                                // console.log(status);
+
+                            });
+                            call.on('end', function() {
+                                // The server has closed the stream.
+                                // console.log('Closed');
+                                return
+                            });
+                        }
+                        // 
+                        }   
+                    });
+                    })
+            })
+            .catch(err => {
+                    log.debug(err)
+            })
+}
+
 // Get cid from invoice hash
 async function getCidFromInvoice(r_hash_str) {
     log.debug(`Getting cid for ${r_hash_str} in invoices table`);
@@ -252,13 +353,13 @@ async function updateInvoiceSettled(r_hash_str) {
     log.debug(`Updating invoice hash ${r_hash_str} as settled in invoices table`);
 
     const dateString = date.get();
-    let cid = ''
-    let value = -1
+    let cid;
+    let value;
 
     return db.knex.transaction((trx) => {
         return db.knex('invoices')
             .where({ r_hash_str: r_hash_str })
-            .update( { settled: true }, ['cid', 'price_msat'] )
+            .update( { settled: true, updated_at: db.knex.fn.now() }, ['cid', 'price_msat'] )
             .transacting(trx)
         .then((data) => {
             cid = data[0]['cid']
@@ -348,6 +449,7 @@ module.exports = {
     checkListenerHash,
     checkListenerStatus,
     checkStatus,
+    forwardTip,
     getCidFromInvoice,
     getUidFromInvoice,
     markRecharged,

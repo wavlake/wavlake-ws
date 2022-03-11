@@ -169,22 +169,30 @@ async function markPlay(cid, count, uid) {
 }
 
 // Recharge play meter
-async function rechargePlays(cid, increment) {
-    return new Promise((resolve, reject) => {
-        log.debug(`Recharging plays remaining for track ${cid}`);
+async function rechargePlays(cid, increment, r_hash_str) {
+
+    log.debug(`Recharging plays remaining for track ${cid}`);
+
+    return db.knex.transaction((trx) => {
         return db.knex('tracks')
                 .where({ cid: cid })
                 .increment({plays_remaining: increment})
                 .update({
                     updated_at: db.knex.fn.now()
-                  })
-                .then(data => {
-                    resolve(data)
-                    })
-                .catch(err => {
-                    reject(err)
                 })
-        })
+                .transacting(trx)
+            .then(() => {
+                log.debug(`Marking invoice hash ${r_hash_str} as used for recharging in invoices table`);
+                return db.knex('invoices')
+                    .where({ r_hash_str: r_hash_str })
+                    .update({ recharged: true, updated_at: db.knex.fn.now() })
+                    .transacting(trx)
+                })        
+            .then(() => trx.commit)
+            .then(() => { return 1 })
+            .catch(trx.rollback)
+    })
+
 }
 
 module.exports = {
