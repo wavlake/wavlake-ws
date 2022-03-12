@@ -4,7 +4,7 @@ const log = require('loglevel')
 const date = require('./date')
 const ownerManager = require('./ownerManager')
 const address = require('../library/address')
-const{ randomUUID } = require('crypto')
+const { randomUUID } = require('crypto')
 const { getuid } = require('process')
 
 const playPrice = parseInt(process.env.PLAY_PRICE);
