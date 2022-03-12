@@ -40,6 +40,7 @@ uri:/lnrpc.Lightning/AddInvoice \
 uri:/lnrpc.Lightning/GetInfo \
 uri:/lnrpc.Lightning/LookupInvoice \
 uri:/lnrpc.Lightning/DecodePayReq \
+uri:/routerrpc.Router/SendPaymentV2 \
 uri:/signrpc.Signer/SignMessage \
 uri:/signrpc.Signer/VerifyMessage \
 uri:/walletrpc.WalletKit/DeriveKey \
