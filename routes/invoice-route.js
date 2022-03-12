@@ -10,6 +10,7 @@ const router = express.Router()
 // Routes
 
 router.post('/add', invoiceRoutes.addInvoice)
+router.post('/add-funds', invoiceRoutes.addFundingInvoice)
 router.post('/monitor', invoiceRoutes.monitorInvoice)
 router.post('/lookup', invoiceRoutes.lookupInvoice)
 

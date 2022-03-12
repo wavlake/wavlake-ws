@@ -105,20 +105,24 @@ async function deleteTrack(owner, cid) {
         })
 }
 
-// TODO: Raise error so plays remaining cannot go below 0
 // Add to play count and subtract from plays remaining
-async function markPlay(cid, count) {
+async function markPlay(cid, count, uid) {
     // return new Promise((resolve, reject, trx) => {
         log.debug(`Adding to play count and subtracing from plays remaining for track ${cid}`);
 
         const dateString = date.get();
-        
+
+        const decrementCount = 1;
+        // TODO: If listener is logged in, mark play for listener and decrement listener's balance
+        // If listener is logged in, do not decrement plays_remaining field
+        // const decrementCount = uid ? 0 : 1;
+
         return db.knex.transaction((trx) => {
             return db.knex('tracks')
                 .where({ cid: cid })
                 .increment({play_count: count})
                 .where({ cid: cid })
-                .decrement({plays_remaining: count})
+                .decrement({plays_remaining: decrementCount})
                 .transacting(trx)
             .then(() => {
                 log.debug(`Creating daily play record for ${cid}`);
@@ -165,22 +169,30 @@ async function markPlay(cid, count) {
 }
 
 // Recharge play meter
-async function rechargePlays(cid, increment) {
-    return new Promise((resolve, reject) => {
-        log.debug(`Recharging plays remaining for track ${cid}`);
+async function rechargePlays(cid, increment, r_hash_str) {
+
+    log.debug(`Recharging plays remaining for track ${cid}`);
+
+    return db.knex.transaction((trx) => {
         return db.knex('tracks')
                 .where({ cid: cid })
                 .increment({plays_remaining: increment})
                 .update({
                     updated_at: db.knex.fn.now()
-                  })
-                .then(data => {
-                    resolve(data)
-                    })
-                .catch(err => {
-                    reject(err)
                 })
-        })
+                .transacting(trx)
+            .then(() => {
+                log.debug(`Marking invoice hash ${r_hash_str} as used for recharging in invoices table`);
+                return db.knex('invoices')
+                    .where({ r_hash_str: r_hash_str })
+                    .update({ recharged: true, updated_at: db.knex.fn.now() })
+                    .transacting(trx)
+                })        
+            .then(() => trx.commit)
+            .then(() => { return 1 })
+            .catch(trx.rollback)
+    })
+
 }
 
 module.exports = {

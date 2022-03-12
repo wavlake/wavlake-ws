@@ -35,6 +35,7 @@ const loaderOptions = {
 };
 const packageDefinition = protoLoader.loadSync([ path.join(__dirname, 'lightning.proto'),
                                                  path.join(__dirname, 'invoices.proto'),
+                                                 path.join(__dirname, 'router.proto'),
                                                  path.join(__dirname, 'signer.proto'),
                                                  path.join(__dirname, 'walletkit.proto')
                                                 ], 
@@ -60,11 +61,15 @@ let credentials = grpc.credentials.combineChannelCredentials(sslCreds, macaroonC
 
 // Create lightning interface
 const lnrpc = grpc.loadPackageDefinition(packageDefinition).lnrpc;
-// let client = new lnrpc.Lightning(`${config.lnd_host}:${config.lnd_port}`, credentials);
+const lnClient = new lnrpc.Lightning(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
 // // Create invoices interface
 const invoicesrpc = grpc.loadPackageDefinition(packageDefinition).invoicesrpc;
-// let invoices = new invoicesrpc.Invoices(`${config.lnd_host}:${config.lnd_port}`, credentials);
+let invoicesClient = new invoicesrpc.Invoices(`${config.lnd_host}:${config.lnd_port}`, credentials);
+
+// // Create invoices interface
+const routerrpc = grpc.loadPackageDefinition(packageDefinition).routerrpc;
+let router = new routerrpc.Router(`${config.lnd_host}:${config.lnd_port}`, credentials);
 
 // // Create signer interface
 const signrpc = grpc.loadPackageDefinition(packageDefinition).signrpc;
@@ -146,9 +151,12 @@ async function initConnection(owner) {
 module.exports = {
     // client,
     // checkStatus,
+    invoicesClient,
     invoicesrpc,
     initConnection,
+    lnClient,
     lnrpc,
+    router,
     signer,
     // walletKit
 }

@@ -2,6 +2,8 @@
 
 .keys/*
 data/*
+db/knexfile.js
+knexfile.js
 
 # dependencies
 /node_modules
