@@ -6,7 +6,7 @@ async function init(address) {
     const username = a[0]
     const domain = a[1]
     // console.log(domain);
-    const url = `http://${domain}/.well-known/lnurlp/${username}`;
+    const url = `https://${domain}/.well-known/lnurlp/${username}`;
     // console.log(url);
 
     return new Promise((resolve, reject) => {
