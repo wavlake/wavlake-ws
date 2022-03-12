@@ -64,11 +64,11 @@ exports.getInfo = handleErrorAsync(async (req, res, next) => {
             // console.log(pr);
             lnd.lnClient.decodePayReq({pay_req: pr}, function(err, response) {
               if (err) {
-                console.log(err);
+                log.debug(err);
                 res.status(500).json(err)
               }
               else {
-                console.log(response);
+                // console.log(response);
                 res.status(200).json(response);
               }   
             });
