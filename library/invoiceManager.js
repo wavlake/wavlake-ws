@@ -189,7 +189,6 @@ async function forwardTip(owner, r_hash_str) {
     
     let amount;
     let fee;
-    
     if (url) {
     return db.knex('invoices')
             .where({ r_hash_str: r_hash_str, forward: true, preimage: null })
