@@ -11,8 +11,10 @@ const router = express.Router()
 
 router.post('/add', invoiceRoutes.addInvoice)
 router.post('/add-funds', invoiceRoutes.addFundingInvoice)
-router.post('/monitor', invoiceRoutes.monitorInvoice)
+router.post('/forward-payment', invoiceRoutes.forwardPayment)
 router.post('/lookup', invoiceRoutes.lookupInvoice)
+router.post('/monitor', invoiceRoutes.monitorInvoice)
+
 
 
 // Export router

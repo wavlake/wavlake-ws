@@ -134,6 +134,19 @@ exports.addInvoice = handleErrorAsync(async (req, res, next) => {
     })
 })
 
+exports.forwardPayment = handleErrorAsync(async (req, res, next) => {
+
+  const owner = req.body.owner;
+  const r_hash_str = req.body.r_hash_str;
+
+  const data = invoiceManager.forwardTip(owner, r_hash_str)
+                .catch(err => {
+                  res.json(err);
+                }) 
+
+  res.json(data);
+})
+
 exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
 
     const owner = req.body.owner;
@@ -217,13 +230,15 @@ exports.monitorInvoice = handleErrorAsync(async (req, res, next) => {
           console.log('awaiting payment')
         }
         else if (response.settled === true) {
-          const update = invoiceManager.updateInvoiceSettled(r_hash_str);
-          ////////////////////////// TODO: If ownerType === 'lnaddress' forward the payment
-          if (update && ownerType === 'lnaddress') {
-            invoiceManager.forwardTip(owner, r_hash_str);
-          }
-
-          res.json(response)
+          invoiceManager.updateInvoiceSettled(r_hash_str)
+            .then((update) => {
+              console.log(update);
+              if (update && ownerType === 'lnaddress') {
+                invoiceManager.forwardTip(owner, r_hash_str);
+              }
+    
+              res.json(response)
+            })
         }
     });
     call.on('status', function(status) {

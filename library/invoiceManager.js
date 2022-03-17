@@ -8,6 +8,7 @@ const { randomUUID } = require('crypto')
 const { getuid } = require('process')
 
 const playPrice = parseInt(process.env.PLAY_PRICE);
+const maxForwardFee = parseInt(process.env.MAX_FORWARD_FEE);
 
 // Add new hash to invoice table
 async function addHash(r_hash_str,
@@ -183,13 +184,15 @@ async function forwardTip(owner, r_hash_str) {
         .then((result) => { ownerAddress = result.config; 
                             return address.init(result.config) })
         .catch(err => {
-            console.log(err)
+            log.debug(err);
         })
     
     let amount;
     let fee;
+    
+    if (url) {
     return db.knex('invoices')
-            .where({ r_hash_str: r_hash_str, forward: true })
+            .where({ r_hash_str: r_hash_str, forward: true, preimage: null })
             .first([ 'price_msat', 'settled' ])
             .then((result) => { 
                 fee = (result.price_msat / playPrice) * 1000;
@@ -208,7 +211,7 @@ async function forwardTip(owner, r_hash_str) {
                         // console.log(amount);
                             if (parseInt(response.num_msat) == amount) {
                                 const request = { payment_request: pr, 
-                                                    fee_limit_msat: (amount * 0.001),
+                                                    fee_limit_msat: (amount * maxForwardFee),
                                                     timeout_seconds: 30 }
                                 let call = lnd.router.sendPaymentV2(request)
                                 call.on('data', function(response) {
@@ -221,7 +224,10 @@ async function forwardTip(owner, r_hash_str) {
                                                         fee_msat: fee,
                                                         tx_fee_msat: response.fee_msat,
                                                         updated_at: db.knex.fn.now()
-                                                        } )
+                                                        },
+                                                        ['r_hash_str',
+                                                         'preimage',
+                                                        'tx_fee_msat'] )
                                             .then(data => {
                                                 return data;
                                             })
@@ -254,6 +260,10 @@ async function forwardTip(owner, r_hash_str) {
             .catch(err => {
                     log.debug(err)
             })
+    }
+    else {
+        return
+    }
 }
 
 // Get cid from invoice hash

@@ -1,4 +1,5 @@
 const axios = require('axios').default;
+const log = require('loglevel')
 
 async function init(address) {
 
@@ -6,7 +7,14 @@ async function init(address) {
     const username = a[0]
     const domain = a[1]
     // console.log(domain);
-    const url = `https://${domain}/.well-known/lnurlp/${username}`;
+    let url;
+    if (process.env.ENVIRONMENT == 'DEV') {
+        url = `http://${domain}/.well-known/lnurlp/${username}`;
+    }
+    else {
+        url = `https://${domain}/.well-known/lnurlp/${username}`;
+    }
+
     // console.log(url);
 
     return new Promise((resolve, reject) => {
@@ -23,11 +31,9 @@ async function init(address) {
             })
             .catch(function (err) {
                 // handle error
+                log.debug(err);
                 reject(err);
             })
-            .then(function () {
-                // always executed
-            });
     })
 }
 
@@ -43,9 +49,6 @@ async function requestInvoice(url, amount) {
                 // handle error
                 reject(err);
             })
-            .then(function () {
-                // always executed
-            });
     })
 }
 
