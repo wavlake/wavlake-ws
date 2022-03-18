@@ -11,8 +11,9 @@ async function checkPlays(cid) {
         .first(
             'cid', 
             'play_count', 
-            'plays_remaining', 
+            'plays_remaining',
             'msats_per_play',
+            'total_msats_fees',
             'total_msats_earned')
         .then(data => {
             resolve(data)
@@ -76,6 +77,7 @@ async function deleteTrack(owner, cid) {
                        'play_count',
                        'plays_remaining',
                        'msats_per_play',
+                       'total_msats_fees',
                        'total_msats_earned',
                        'updated_at',
                        'title',
@@ -89,6 +91,7 @@ async function deleteTrack(owner, cid) {
                                   play_count: deleted[0].play_count,
                                   plays_remaining: deleted[0].plays_remaining,
                                   msats_per_play: deleted[0].msats_per_play,
+                                  total_msats_fees: deleted[0].total_msats_fees,
                                   total_msats_earned: deleted[0].total_msats_earned,
                                   updated_at: deleted[0].updated_at,
                                   title: deleted[0].title,

@@ -10,6 +10,10 @@ const { getuid } = require('process')
 const playPrice = parseInt(process.env.PLAY_PRICE);
 const maxForwardFee = parseInt(process.env.MAX_FORWARD_FEE);
 
+function feeCalculator(amount) {
+    return (amount / playPrice) * 1000;
+}
+
 // Add new hash to invoice table
 async function addHash(r_hash_str,
                        price_msat,
@@ -194,7 +198,8 @@ async function forwardTip(owner, r_hash_str) {
             .where({ r_hash_str: r_hash_str, forward: true, preimage: null })
             .first([ 'price_msat', 'settled' ])
             .then((result) => { 
-                fee = (result.price_msat / playPrice) * 1000;
+                // fee = (result.price_msat / playPrice) * 1000;
+                fee = feeCalculator(result.price_msat);
                 amount = result.price_msat - fee;
                 address.requestInvoice(url, amount)
                     .then((pr) => {
@@ -217,22 +222,22 @@ async function forwardTip(owner, r_hash_str) {
                                     // A response was received from the server.
                                     if (response.status == "SUCCEEDED") {
                                         log.debug(`Marking invoice hash ${r_hash_str} as forwarded`);
-                                        return db.knex('invoices')
-                                            .where({ r_hash_str: r_hash_str })
-                                            .update( { preimage: response.payment_preimage,
-                                                        fee_msat: fee,
-                                                        tx_fee_msat: response.fee_msat,
-                                                        updated_at: db.knex.fn.now()
-                                                        },
-                                                        ['r_hash_str',
-                                                         'preimage',
-                                                        'tx_fee_msat'] )
-                                            .then(data => {
-                                                return data;
-                                            })
-                                            .catch(err => {
-                                                console.log(err)
-                                            })
+                                        return db.knex.transaction((trx) => {
+                                            return db.knex('invoices')
+                                                .where({ r_hash_str: r_hash_str })
+                                                .update( { preimage: response.payment_preimage,
+                                                            fee_msat: fee,
+                                                            tx_fee_msat: response.fee_msat,
+                                                            updated_at: db.knex.fn.now()
+                                                            },
+                                                            ['cid',
+                                                             'r_hash_str',
+                                                             'preimage',
+                                                             'tx_fee_msat'] )
+                                                .transacting(trx)
+                                                .then(() => trx.commit)
+                                                .catch(trx.rollback)
+                                        })
                                   }
                                     else if (response.status == "FAILED") {
                                         flagForwardFailure(r_hash_str, response.failure_reason)
@@ -363,15 +368,17 @@ async function updateInvoiceSettled(r_hash_str) {
 
     const dateString = date.get();
     let cid;
+    let forward;
     let value;
 
     return db.knex.transaction((trx) => {
         return db.knex('invoices')
             .where({ r_hash_str: r_hash_str })
-            .update( { settled: true, updated_at: db.knex.fn.now() }, ['cid', 'price_msat'] )
+            .update( { settled: true, updated_at: db.knex.fn.now() }, ['cid', 'forward', 'price_msat'] )
             .transacting(trx)
         .then((data) => {
             cid = data[0]['cid']
+            forward = data[0]['forward']
             value = data[0]['price_msat']
             log.debug(`Creating daily tips record for ${cid} in tips table`);
             return db.knex('tips')
@@ -381,9 +388,11 @@ async function updateInvoiceSettled(r_hash_str) {
                 .transacting(trx)
         })
         .then(() => {
+            fee = forward ? feeCalculator(value) : 0;
+
             return db.knex('tracks')
             .where({ cid: cid })
-            .increment({ total_msats_earned: value})
+            .increment({ total_msats_fees: fee, total_msats_earned: value })
             .update({ updated_at: db.knex.fn.now()})       
             .transacting(trx)
         })

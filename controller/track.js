@@ -137,6 +137,7 @@ exports.mark = handleErrorAsync(async (req, res, next) => {
                                    .set({
                                      plays: check.play_count,
                                      playsRemaining: check.plays_remaining,
+                                     totalMsatsFees: check.total_msats_fees,
                                      totalMsatsEarned: check.total_msats_earned
                                    }, { merge: true });
 
@@ -205,6 +206,7 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
                                     .set({
                                       plays: check.play_count,
                                       playsRemaining: check.plays_remaining,
+                                      totalMsatsFees: check.total_msats_fees,
                                       totalMsatsEarned: check.total_msats_earned
                                     }, { merge: true });
 

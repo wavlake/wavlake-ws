@@ -179,7 +179,7 @@ exports.lookupInvoice = handleErrorAsync(async (req, res, next) => {
         else if (response.settled === true) {
           invoiceManager.updateInvoiceSettled(r_hash_str)
             .then((update) => {
-              console.log(update);
+              // console.log(update);
               if (update && ownerType === 'lnaddress') {
                 invoiceManager.forwardTip(owner, r_hash_str);
               }
