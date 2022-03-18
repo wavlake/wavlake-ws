@@ -40,7 +40,7 @@ async function init(address) {
 async function requestInvoice(url, amount) {
 
     return new Promise((resolve, reject) => {
-        axios.get(`${url}?amount=${amount}`)
+        axios.get(`${url}?amount=${amount}&comment=WavlakePayment`)
             .then(function (response) {
                 // handle success
                 resolve(response.data.pr)
