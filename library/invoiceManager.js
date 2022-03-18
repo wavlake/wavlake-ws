@@ -366,43 +366,11 @@ async function updateListenerInvoiceHash(invoiceId,
 async function updateInvoiceSettled(r_hash_str) {
     log.debug(`Updating invoice hash ${r_hash_str} as settled in invoices table`);
 
-    const dateString = date.get();
-    let cid;
-    let forward;
-    let value;
-
     return db.knex.transaction((trx) => {
         return db.knex('invoices')
             .where({ r_hash_str: r_hash_str })
-            .update( { settled: true, updated_at: db.knex.fn.now() }, ['cid', 'forward', 'price_msat'] )
+            .update( { settled: true, updated_at: db.knex.fn.now() } )
             .transacting(trx)
-        .then((data) => {
-            cid = data[0]['cid']
-            forward = data[0]['forward']
-            value = data[0]['price_msat']
-            log.debug(`Creating daily tips record for ${cid} in tips table`);
-            return db.knex('tips')
-                .insert({ cid: cid, date_utc: dateString })
-                .onConflict(['cid', 'date_utc'])
-                .ignore()
-                .transacting(trx)
-        })
-        .then(() => {
-            fee = forward ? feeCalculator(value) : 0;
-
-            return db.knex('tracks')
-            .where({ cid: cid })
-            .increment({ total_msats_fees: fee, total_msats_earned: value })
-            .update({ updated_at: db.knex.fn.now()})       
-            .transacting(trx)
-        })
-        .then(() => {
-                return db.knex('tips')
-                .where({ cid: cid, date_utc: dateString })
-                .increment({ total_msats: value})
-                .update({ updated_at: db.knex.fn.now()})       
-                .transacting(trx)
-        })
         .then(() => trx.commit)
         .then(() => { return 1 })
         .catch(trx.rollback)

@@ -2,6 +2,13 @@ const db = require('./db')
 const log = require('loglevel');
 const date = require('./date')
 
+const playPrice = parseInt(process.env.PLAY_PRICE);
+const maxForwardFee = parseInt(process.env.MAX_FORWARD_FEE);
+
+function feeCalculator(amount) {
+    return (amount / playPrice) * 1000;
+}
+
 // Check play meter
 async function checkPlays(cid) {
     return new Promise((resolve, reject) => {
@@ -176,6 +183,10 @@ async function rechargePlays(cid, increment, r_hash_str) {
 
     log.debug(`Recharging plays remaining for track ${cid}`);
 
+    const dateString = date.get();
+    let forward;
+    let value;
+
     return db.knex.transaction((trx) => {
         return db.knex('tracks')
                 .where({ cid: cid })
@@ -188,9 +199,36 @@ async function rechargePlays(cid, increment, r_hash_str) {
                 log.debug(`Marking invoice hash ${r_hash_str} as used for recharging in invoices table`);
                 return db.knex('invoices')
                     .where({ r_hash_str: r_hash_str })
-                    .update({ recharged: true, updated_at: db.knex.fn.now() })
+                    .update({ recharged: true, updated_at: db.knex.fn.now() },
+                             ['forward', 'price_msat'])
                     .transacting(trx)
-                })        
+                })
+                .then((data) => {
+                    forward = data[0]['forward']
+                    value = data[0]['price_msat']
+                    log.debug(`Creating daily tips record for ${cid} in tips table`);
+                    return db.knex('tips')
+                        .insert({ cid: cid, date_utc: dateString })
+                        .onConflict(['cid', 'date_utc'])
+                        .ignore()
+                        .transacting(trx)
+                })
+                .then(() => {
+                        return db.knex('tips')
+                        .where({ cid: cid, date_utc: dateString })
+                        .increment({ total_msats: value})
+                        .update({ updated_at: db.knex.fn.now()})       
+                        .transacting(trx)
+                })
+                .then(() => {
+                    fee = forward ? feeCalculator(value) : 0;
+        
+                    return db.knex('tracks')
+                    .where({ cid: cid })
+                    .increment({ total_msats_fees: fee, total_msats_earned: value })
+                    .update({ updated_at: db.knex.fn.now()})       
+                    .transacting(trx)
+                })
             .then(() => trx.commit)
             .then(() => { return 1 })
             .catch(trx.rollback)
