@@ -96,15 +96,23 @@ exports.delete = handleErrorAsync(async (req, res, next) => {
   const request = {
     owner: req.body.owner,
     bucket: req.body.bucket,
-    cid: req.body.cid
+    cid: req.body.cid,
+    type: req.body.type
   }
 
-  log.debug(`Deleting track ${request.owner}:${request.cid} in tracks table`);
+  log.debug(`Deleting ${request.type} ${request.owner}:${request.cid}`);
 
-  storage.deleteFromStorage(request.bucket, request.owner, request.cid)
+  if (request.type == "track") {
+    storage.deleteFromStorage(request.bucket, request.owner, request.cid, request.type)
     .then(() => trackManager.deleteTrack(request.owner, request.cid))
     .then((data) => res.status(200).json(data))
     .catch((err) => log.error(err))
+  }
+  else if (request.type == "artwork") {
+    storage.deleteFromStorage(request.bucket, request.owner, request.cid, request.type)
+    .then((data) => res.status(200).json(data))
+    .catch((err) => log.error(err))
+  }
 
   // Delete media from IPFS
   // const unpin = await pinata.unpin(request.trackId)
@@ -236,16 +244,22 @@ exports.recharge = handleErrorAsync(async (req, res, next) => {
 exports.upload = handleErrorAsync(async (req, res, next) => {
 
   const fileObj = req.files.filename;
+  // console.log(fileObj);
 
   const request = {
     title: req.body.title,
     bucket: req.body.bucket,
-    owner: req.body.owner, 
+    owner: req.body.owner,
+    uploadType: req.body.uploadType
   }
 
-  log.debug(`Uploading track ${request.owner}:${request.title} to ${request.bucket}`);
+  log.debug(`Uploading ${request.uploadType} for ${request.owner} to ${request.bucket}`);
 
-  const upload = await storage.uploadToStorage(Buffer.from(fileObj.data, 'base64'), request.bucket, request.owner)
+  const upload = await storage.uploadToStorage(Buffer.from(fileObj.data, 'base64'),
+                                               fileObj.name,
+                                               request.bucket, 
+                                               request.owner,
+                                               request.uploadType)
 
   if (upload) {
     res.status(200).json(upload)
