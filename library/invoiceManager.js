@@ -8,7 +8,7 @@ const { randomUUID } = require('crypto')
 const { getuid } = require('process')
 
 const playPrice = parseInt(process.env.PLAY_PRICE);
-const maxForwardFee = parseInt(process.env.MAX_FORWARD_FEE);
+const maxForwardFee = parseFloat(process.env.MAX_FORWARD_FEE);
 
 function feeCalculator(amount) {
     return (amount / playPrice) * 1000;
